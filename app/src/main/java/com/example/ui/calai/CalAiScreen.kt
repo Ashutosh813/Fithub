@@ -8,6 +8,9 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,12 +25,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CameraAlt
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.QueryStats
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,8 +42,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,23 +57,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.AiScanResult
+import com.example.model.CalAiDayData
 import com.example.model.CalAiTab
 import com.example.model.FoodItem
 import com.example.model.MealType
 import com.example.model.SampleFoodPreset
 import com.example.ui.theme.AccentOrange
-import com.example.ui.theme.AccentPurple
 import com.example.ui.theme.BackgroundColor
 import com.example.ui.theme.BorderColor
 import com.example.ui.theme.InterFontFamily
 import com.example.ui.theme.TextMain
 import com.example.ui.theme.TextMuted
-
-data class CalendarDayItem(
-    val dayName: String,
-    val dayNumber: String,
-    val isToday: Boolean = false
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,6 +83,10 @@ fun CalAiScreen(
     carbsGoal: Int,
     totalFat: Int,
     fatGoal: Int,
+    currentSelectedDay: CalAiDayData,
+    calendarDays: List<CalAiDayData>,
+    selectedDayIndex: Int,
+    onSelectDay: (Int) -> Unit,
     isCameraScanning: Boolean,
     scanResult: AiScanResult?,
     isAddFoodSheetOpen: Boolean,
@@ -99,18 +104,21 @@ fun CalAiScreen(
 ) {
     BackHandler { onClose() }
 
-    val daysOfWeek = remember {
-        listOf(
-            CalendarDayItem("Fri", "02"),
-            CalendarDayItem("Sat", "03"),
-            CalendarDayItem("Sun", "04"),
-            CalendarDayItem("Mon", "05"),
-            CalendarDayItem("Tue", "06"),
-            CalendarDayItem("Wed", "07", isToday = true),
-            CalendarDayItem("Thu", "08")
-        )
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    val draggableState = rememberDraggableState { delta ->
+        dragOffsetY += delta
+        if (dragOffsetY > 120f) {
+            onClose()
+        }
     }
-    var selectedDayIndex by remember { mutableIntStateOf(5) } // Wed 07
+
+    // Scroll to current selected day (index 18) initially
+    val calendarListState = rememberLazyListState()
+    LaunchedEffect(Unit) {
+        if (selectedDayIndex > 3) {
+            calendarListState.scrollToItem(selectedDayIndex - 3)
+        }
+    }
 
     Scaffold(
         modifier = modifier
@@ -123,46 +131,50 @@ fun CalAiScreen(
                     .fillMaxWidth()
                     .background(Color.White)
                     .statusBarsPadding()
+                    .draggable(
+                        state = draggableState,
+                        orientation = Orientation.Vertical,
+                        onDragStopped = { dragOffsetY = 0f }
+                    )
             ) {
-                // Top drag handle indicator
+                // Top drag handle - dragging down or tapping minimizes
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp, bottom = 4.dp),
+                        .clickable(onClick = onClose)
+                        .padding(top = 10.dp, bottom = 6.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
                         modifier = Modifier
-                            .width(36.dp)
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(Color(0xFFD1D1D6))
+                            .width(42.dp)
+                            .height(5.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(Color(0xFFC7C7CC))
                     )
                 }
 
-                // Clean Header Row (No "Cal AI" text, has Close & Streak Pill)
+                // Header Row (Streak Pill on right, date title on left)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 6.dp),
+                        .padding(horizontal = 20.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Close button
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFF2F2F7))
-                            .clickable(onClick = onClose)
-                            .testTag("close_cal_ai_button"),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.KeyboardArrowDown,
-                            contentDescription = "Close",
-                            tint = TextMain,
-                            modifier = Modifier.size(24.dp)
+                    Column {
+                        Text(
+                            text = if (currentSelectedDay.isToday) "Today" else "${currentSelectedDay.dayName}, Oct ${currentSelectedDay.dayNumber}",
+                            fontFamily = InterFontFamily,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Black,
+                            color = TextMain
+                        )
+                        Text(
+                            text = if (currentSelectedDay.isToday) "Stay on track today" else "Past log overview",
+                            fontFamily = InterFontFamily,
+                            fontSize = 11.5.sp,
+                            color = TextMuted
                         )
                     }
 
@@ -195,39 +207,58 @@ fun CalAiScreen(
                     }
                 }
 
-                // Days of the Week Calendar Row (Matching the 4 screenshots)
-                Row(
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Scrollable 21-Day Calendar Pills Strip (Inspired by uploaded image 2)
+                LazyRow(
+                    state = calendarListState,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp)
                 ) {
-                    daysOfWeek.forEachIndexed { index, day ->
+                    itemsIndexed(calendarDays) { index, day ->
                         val isSelected = index == selectedDayIndex
+
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier
-                                .clip(RoundedCornerShape(16.dp))
-                                .clickable { selectedDayIndex = index }
-                                .padding(horizontal = 2.dp, vertical = 2.dp)
+                                .clip(RoundedCornerShape(26.dp))
+                                .background(if (isSelected) Color(0xFFF3F4F6) else Color.White)
+                                .border(
+                                    width = if (isSelected) 1.5.dp else 0.5.dp,
+                                    color = if (isSelected) Color(0xFF111115) else Color(0x18000000),
+                                    shape = RoundedCornerShape(26.dp)
+                                )
+                                .clickable { onSelectDay(index) }
+                                .padding(horizontal = 10.dp, vertical = 10.dp)
+                                .testTag("calendar_day_$index")
                         ) {
                             Text(
                                 text = day.dayName,
                                 fontFamily = InterFontFamily,
                                 fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                fontWeight = if (isSelected || day.isToday) FontWeight.Bold else FontWeight.Medium,
                                 color = if (isSelected) TextMain else TextMuted
                             )
 
-                            if (isSelected) {
+                            // Date circle with status checkmark badge
+                            Box(
+                                modifier = Modifier.size(36.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(36.dp)
+                                        .size(34.dp)
                                         .clip(CircleShape)
-                                        .background(Color.White)
-                                        .border(2.dp, Color(0xFF111115), CircleShape),
+                                        .background(if (isSelected) Color(0xFF111115) else Color(0xFFF9FAFB))
+                                        .border(
+                                            width = if (day.isToday && !isSelected) 2.dp else 0.5.dp,
+                                            color = if (day.isToday && !isSelected) Color(0xFF5856D6) else Color(0x14000000),
+                                            shape = CircleShape
+                                        ),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
@@ -235,26 +266,48 @@ fun CalAiScreen(
                                         fontFamily = InterFontFamily,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = TextMain
+                                        color = if (isSelected) Color.White else TextMain
+                                    )
+                                }
+
+                                // Checkmark badge on top right for completed days (matching image 2)
+                                if (day.hasLog && !isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .size(13.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF5856D6)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Check,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(9.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Distinct PRESENT DAY label indicator
+                            if (day.isToday) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(if (isSelected) Color(0xFF111115) else Color(0xFF5856D6))
+                                        .padding(horizontal = 6.dp, vertical = 1.dp)
+                                ) {
+                                    Text(
+                                        text = "TODAY",
+                                        fontFamily = InterFontFamily,
+                                        fontSize = 7.5.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = Color.White
                                     )
                                 }
                             } else {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFFFAFAFA))
-                                        .border(1.dp, Color(0xFFE5E7EB), CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = day.dayNumber,
-                                        fontFamily = InterFontFamily,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = TextMuted
-                                    )
-                                }
+                                Spacer(modifier = Modifier.height(11.dp))
                             }
                         }
                     }
@@ -262,7 +315,6 @@ fun CalAiScreen(
             }
         },
         bottomBar = {
-            // Clean Bottom Bar: Home on left, ONLY round Camera button in center, Analytics on right
             CleanCalBottomBar(
                 selectedTab = currentTab,
                 onTabSelected = onTabSelected
@@ -292,6 +344,7 @@ fun CalAiScreen(
                             carbsGoal = carbsGoal,
                             totalFat = totalFat,
                             fatGoal = fatGoal,
+                            currentDayData = currentSelectedDay,
                             onOpenScanner = { onTabSelected(CalAiTab.CAMERA) },
                             onAddFoodClick = onOpenAddFood,
                             onDeleteFood = onDeleteFood
@@ -360,7 +413,7 @@ fun CleanCalBottomBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Home Tab (renamed from Dashboard)
+            // Home Tab
             Column(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
@@ -392,7 +445,7 @@ fun CleanCalBottomBar(
             Box(
                 modifier = Modifier
                     .size(54.dp)
-                    .shadow(elevation = 6.dp, shape = CircleShape, ambientColor = Color(0x14000000), spotColor = Color(0x28000000))
+                    .shadow(elevation = 8.dp, shape = CircleShape, ambientColor = Color(0x1E000000), spotColor = Color(0x32000000))
                     .clip(CircleShape)
                     .background(Color(0xFF111115))
                     .clickable { onTabSelected(CalAiTab.CAMERA) }

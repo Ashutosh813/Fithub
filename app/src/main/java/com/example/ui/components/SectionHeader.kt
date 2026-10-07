@@ -38,16 +38,16 @@ fun SectionHeader(
         Text(
             text = title,
             fontFamily = InterFontFamily,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = (-0.4).sp,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = (-0.5).sp,
             color = TextMain
         )
         Text(
             text = actionText,
             fontFamily = InterFontFamily,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Black,
             color = AccentPurple,
             modifier = Modifier
                 .clickable(

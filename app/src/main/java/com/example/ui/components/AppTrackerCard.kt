@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -62,28 +63,50 @@ fun AppTrackerCard(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+
+    // 3D Physical tactile press animations
     val animatedScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
+        targetValue = if (isPressed) 0.93f else 1f,
+        animationSpec = spring(dampingRatio = 0.65f, stiffness = 420f),
         label = "card_scale"
+    )
+    val animatedElevation by animateFloatAsState(
+        targetValue = if (isPressed) 2f else 12f,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
+        label = "card_elevation"
+    )
+    val animatedOffsetY by animateFloatAsState(
+        targetValue = if (isPressed) 3.5f else 0f,
+        animationSpec = spring(dampingRatio = 0.65f, stiffness = 420f),
+        label = "card_offset_y"
     )
 
     Box(
         modifier = modifier
             .aspectRatio(1f)
+            .offset(y = animatedOffsetY.dp)
             .scale(animatedScale)
+            // 3D tactile layered shadow
             .shadow(
-                elevation = if (isPressed) 2.dp else 8.dp,
-                shape = RoundedCornerShape(20.dp),
-                ambientColor = Color(0x0D000000),
-                spotColor = Color(0x12000000)
+                elevation = animatedElevation.dp,
+                shape = RoundedCornerShape(22.dp),
+                ambientColor = Color(0x18000000),
+                spotColor = Color(0x24000000)
             )
-            .clip(RoundedCornerShape(20.dp))
-            .background(CardBackground)
-            .border(0.5.dp, BorderColor, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(22.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color.White,
+                        Color(0xFFFAFAFD)
+                    )
+                )
+            )
+            // 3D dual-layer crisp edge
+            .border(0.75.dp, Color(0x1C000000), RoundedCornerShape(22.dp))
             .clickable(
                 interactionSource = interactionSource,
-                indication = ripple(bounded = true, color = tracker.progressColor.copy(alpha = 0.15f)),
+                indication = ripple(bounded = true, color = tracker.progressColor.copy(alpha = 0.18f)),
                 onClick = onClick
             )
             .padding(12.dp)
@@ -93,23 +116,23 @@ fun AppTrackerCard(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Icon Box
+            // Icon Box with 3D bevel effect
             Box(
                 modifier = Modifier
-                    .size(30.dp)
+                    .size(32.dp)
                     .shadow(
-                        elevation = 2.dp,
-                        shape = RoundedCornerShape(9.dp),
-                        ambientColor = Color(0x0A000000),
-                        spotColor = Color(0x0F000000)
+                        elevation = 3.dp,
+                        shape = RoundedCornerShape(10.dp),
+                        ambientColor = Color(0x0E000000),
+                        spotColor = Color(0x18000000)
                     )
-                    .clip(RoundedCornerShape(9.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(
                         Brush.linearGradient(
                             listOf(tracker.iconBgLight, Color.White)
                         )
                     )
-                    .border(0.5.dp, Color(0x0F000000), RoundedCornerShape(9.dp)),
+                    .border(0.5.dp, Color(0x14000000), RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 val iconVector = when (tracker.iconType) {
@@ -123,36 +146,36 @@ fun AppTrackerCard(
                     imageVector = iconVector,
                     contentDescription = tracker.title,
                     tint = tracker.iconColor,
-                    modifier = Modifier.size(15.dp)
+                    modifier = Modifier.size(16.dp)
                 )
             }
 
-            // Title
+            // App Name - Extra Bold & prominent for high readability
             Text(
                 text = tracker.title,
                 fontFamily = InterFontFamily,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = TextMain,
-                lineHeight = 13.sp,
-                letterSpacing = (-0.2).sp,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFF0F0F14),
+                lineHeight = 14.sp,
+                letterSpacing = (-0.3).sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
 
-            // Stat & Progress Bar
+            // Stat & Progress Bar - Bold & distinct
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 Text(
                     text = buildAnnotatedString {
                         withStyle(
                             SpanStyle(
                                 fontFamily = InterFontFamily,
-                                fontWeight = FontWeight.Bold,
-                                color = TextMain,
-                                fontSize = 10.sp
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFF0F0F14),
+                                fontSize = 11.5.sp
                             )
                         ) {
                             append(tracker.currentFormatted)
@@ -161,8 +184,8 @@ fun AppTrackerCard(
                         withStyle(
                             SpanStyle(
                                 fontFamily = InterFontFamily,
-                                fontWeight = FontWeight.Normal,
-                                color = TextMuted,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF6B7280),
                                 fontSize = 10.sp
                             )
                         ) {
@@ -173,19 +196,19 @@ fun AppTrackerCard(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                // iOS Progress Bar
+                // 3D Progress Bar
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(4.dp))
+                        .height(4.5.dp)
+                        .clip(RoundedCornerShape(3.dp))
                         .background(ProgressTrackColor)
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(tracker.progress.coerceIn(0f, 1f))
                             .fillMaxHeight()
-                            .clip(RoundedCornerShape(4.dp))
+                            .clip(RoundedCornerShape(3.dp))
                             .background(tracker.progressColor)
                     )
                 }

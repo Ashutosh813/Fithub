@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.model.AiScanResult
 import com.example.model.AppTracker
+import com.example.model.CalAiDayData
 import com.example.model.CalAiTab
 import com.example.model.FoodItem
 import com.example.model.MealType
@@ -15,7 +16,15 @@ import com.example.model.TrackerIconType
 import com.example.model.defaultTodayMetrics
 import com.example.model.defaultTrackers
 import com.example.model.initialFoodItems
+import com.example.model.pastDaysCalendar
 import com.example.model.sampleFoodDatabase
+import com.example.ui.theme.AccentBlue
+import com.example.ui.theme.AccentBlueLight
+import com.example.ui.theme.AccentGreen
+import com.example.ui.theme.AccentOrange
+import com.example.ui.theme.AccentOrangeLight
+import com.example.ui.theme.AccentPurple
+import com.example.ui.theme.AccentRed
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,12 +46,15 @@ data class FitHubUiState(
     val selectedMetric: TodayMetric? = null,
     val isProfileOpen: Boolean = false,
 
-    // Full-screen App States (Slide up all the way from bottom)
+    // Full-screen App States
     val isCalAiOpen: Boolean = false,
     val isHabitTrackerOpen: Boolean = false,
     val isSleepTrackerOpen: Boolean = false,
+    val isWaterTrackerOpen: Boolean = false,
 
-    // Cal AI State
+    // Cal AI Calendar & State
+    val selectedDayIndex: Int = 18, // 18 is Today Wed 07
+    val calendarDays: List<CalAiDayData> = pastDaysCalendar,
     val calAiTab: CalAiTab = CalAiTab.HOME,
     val foodItems: List<FoodItem> = initialFoodItems,
     val calorieGoal: Int = 2500,
@@ -62,10 +74,25 @@ data class FitHubUiState(
     val userSteps: Int = 6842,
     val userSleepHours: Float = 6.5f
 ) {
-    val totalCaloriesConsumed: Int get() = foodItems.sumOf { it.calories }
-    val totalProteinConsumed: Int get() = foodItems.sumOf { it.protein }
-    val totalCarbsConsumed: Int get() = foodItems.sumOf { it.carbs }
-    val totalFatConsumed: Int get() = foodItems.sumOf { it.fat }
+    val currentSelectedDay: CalAiDayData
+        get() = calendarDays.getOrNull(selectedDayIndex) ?: calendarDays[18]
+
+    // If viewing Today (day 18), use active live meals; otherwise use the past day's dummy meals
+    val displayedFoodItems: List<FoodItem>
+        get() = if (selectedDayIndex == 18) foodItems else currentSelectedDay.meals
+
+    val totalCaloriesConsumed: Int
+        get() = if (selectedDayIndex == 18) foodItems.sumOf { it.calories } else currentSelectedDay.calories
+
+    val totalProteinConsumed: Int
+        get() = if (selectedDayIndex == 18) foodItems.sumOf { it.protein } else currentSelectedDay.protein
+
+    val totalCarbsConsumed: Int
+        get() = if (selectedDayIndex == 18) foodItems.sumOf { it.carbs } else currentSelectedDay.carbs
+
+    val totalFatConsumed: Int
+        get() = if (selectedDayIndex == 18) foodItems.sumOf { it.fat } else currentSelectedDay.fat
+
     val remainingCalories: Int get() = (calorieGoal - totalCaloriesConsumed).coerceAtLeast(0)
     val calorieProgress: Float get() = (totalCaloriesConsumed.toFloat() / calorieGoal.toFloat()).coerceIn(0f, 1f)
 }
@@ -91,6 +118,10 @@ class FitHubViewModel : ViewModel() {
         _uiState.update { it.copy(isProfileOpen = isOpen) }
     }
 
+    fun selectCalendarDay(index: Int) {
+        _uiState.update { it.copy(selectedDayIndex = index.coerceIn(0, it.calendarDays.size - 1)) }
+    }
+
     fun selectTracker(tracker: AppTracker?) {
         if (tracker == null) {
             _uiState.update { it.copy(selectedTracker = null) }
@@ -100,21 +131,14 @@ class FitHubViewModel : ViewModel() {
             TrackerIconType.CALORIE -> openCalAi()
             TrackerIconType.HABIT -> openHabitTracker()
             TrackerIconType.SLEEP -> openSleepTracker()
+            TrackerIconType.WATER -> openWaterTracker()
             else -> _uiState.update { it.copy(selectedTracker = tracker) }
         }
     }
 
+    // Do NOT open trackers when clicking Today card stats
     fun selectMetric(metric: TodayMetric?) {
-        if (metric == null) {
-            _uiState.update { it.copy(selectedMetric = null) }
-            return
-        }
-        when (metric.type) {
-            TodayMetricType.CALORIES -> openCalAi()
-            TodayMetricType.HABITS -> openHabitTracker()
-            TodayMetricType.WATER -> addWaterGlass(1)
-            TodayMetricType.ACTIVITY -> addSteps(500)
-        }
+        _uiState.update { it.copy(selectedMetric = metric) }
     }
 
     // Full-screen App transitions
@@ -165,6 +189,135 @@ class FitHubViewModel : ViewModel() {
         _uiState.update { it.copy(isSleepTrackerOpen = false) }
     }
 
+    fun openWaterTracker() {
+        _uiState.update {
+            it.copy(
+                isWaterTrackerOpen = true,
+                selectedTracker = null,
+                selectedMetric = null
+            )
+        }
+    }
+
+    fun closeWaterTracker() {
+        _uiState.update { it.copy(isWaterTrackerOpen = false) }
+    }
+
+    // Toggle apps in My Apps and dynamically synchronize Today Card metrics
+    fun toggleAppInMyApps(appId: String, isEnabled: Boolean) {
+        _uiState.update { state ->
+            val currentTrackers = state.trackers.toMutableList()
+            val appExists = currentTrackers.any { it.id == appId }
+
+            if (isEnabled && !appExists) {
+                when (appId) {
+                    "water" -> currentTrackers.add(
+                        AppTracker(
+                            id = "water",
+                            title = "Water Tracking",
+                            iconType = TrackerIconType.WATER,
+                            currentValue = 4f,
+                            targetValue = 8f,
+                            currentFormatted = "4",
+                            targetFormatted = "/ 8 glasses",
+                            progress = 0.5f,
+                            progressColor = AccentBlue,
+                            iconColor = AccentBlue,
+                            iconBgLight = AccentBlueLight
+                        )
+                    )
+                    "activity" -> currentTrackers.add(
+                        AppTracker(
+                            id = "activity",
+                            title = "Activity Steps",
+                            iconType = TrackerIconType.WORKOUT,
+                            currentValue = 6842f,
+                            targetValue = 10000f,
+                            currentFormatted = "6.8k",
+                            targetFormatted = "/ 10k steps",
+                            progress = 0.68f,
+                            progressColor = AccentOrange,
+                            iconColor = AccentOrange,
+                            iconBgLight = AccentOrangeLight
+                        )
+                    )
+                    "calorie" -> defaultTrackers.firstOrNull { it.id == "calorie" }?.let { currentTrackers.add(it) }
+                    "habit" -> defaultTrackers.firstOrNull { it.id == "habit" }?.let { currentTrackers.add(it) }
+                    "sleep" -> defaultTrackers.firstOrNull { it.id == "sleep" }?.let { currentTrackers.add(it) }
+                }
+            } else if (!isEnabled && appExists) {
+                currentTrackers.removeAll { it.id == appId }
+            }
+
+            // Sync Today Metrics strictly from the currently active apps in My Apps!
+            val activeIds = currentTrackers.map { it.id }.toSet()
+            val updatedTodayMetrics = mutableListOf<TodayMetric>()
+
+            if ("calorie" in activeIds) {
+                val totalCalories = state.foodItems.sumOf { it.calories }
+                updatedTodayMetrics.add(
+                    TodayMetric(
+                        id = "today_calories",
+                        title = "Calories",
+                        type = TodayMetricType.CALORIES,
+                        primaryValue = NumberFormat.getNumberInstance(Locale.US).format(totalCalories),
+                        secondaryValue = "/ ${state.calorieGoal} kcal"
+                    )
+                )
+            }
+            if ("habit" in activeIds) {
+                updatedTodayMetrics.add(
+                    TodayMetric(
+                        id = "today_habits",
+                        title = "Habits",
+                        type = TodayMetricType.HABITS,
+                        primaryValue = state.userHabitsDone.toString(),
+                        secondaryValue = "/ 5 completed"
+                    )
+                )
+            }
+            if ("sleep" in activeIds) {
+                updatedTodayMetrics.add(
+                    TodayMetric(
+                        id = "today_sleep",
+                        title = "Sleep",
+                        type = TodayMetricType.SLEEP,
+                        primaryValue = if (state.userSleepHours % 1f == 0f) String.format(Locale.US, "%.0f", state.userSleepHours) else String.format(Locale.US, "%.1f", state.userSleepHours),
+                        secondaryValue = "/ 8 hrs"
+                    )
+                )
+            }
+            if ("water" in activeIds) {
+                updatedTodayMetrics.add(
+                    TodayMetric(
+                        id = "today_water",
+                        title = "Water",
+                        type = TodayMetricType.WATER,
+                        primaryValue = state.userWaterGlasses.toString(),
+                        secondaryValue = "/ 8 glasses"
+                    )
+                )
+            }
+            if ("activity" in activeIds) {
+                updatedTodayMetrics.add(
+                    TodayMetric(
+                        id = "today_activity",
+                        title = "Activity",
+                        type = TodayMetricType.ACTIVITY,
+                        primaryValue = NumberFormat.getNumberInstance(Locale.US).format(state.userSteps),
+                        secondaryValue = "steps",
+                        isSecondaryBold = true
+                    )
+                )
+            }
+
+            state.copy(
+                trackers = currentTrackers,
+                todayMetrics = updatedTodayMetrics
+            )
+        }
+    }
+
     // Food Management
     fun addFoodItem(
         name: String,
@@ -206,7 +359,7 @@ class FitHubViewModel : ViewModel() {
     fun startCameraScan(samplePreset: SampleFoodPreset? = null) {
         viewModelScope.launch {
             _uiState.update { it.copy(isCameraScanning = true, currentScanResult = null) }
-            delay(1400) // Simulating realistic Cal AI neural network analysis
+            delay(1400)
             val preset = samplePreset ?: sampleFoodDatabase.random()
             val result = AiScanResult(
                 dishName = preset.name,

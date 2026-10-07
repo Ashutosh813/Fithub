@@ -21,13 +21,13 @@ import com.example.model.NavTab
 import com.example.ui.calai.CalAiScreen
 import com.example.ui.components.ManageAppsSheet
 import com.example.ui.components.ProfileSheet
-import com.example.ui.components.TrackerDetailSheet
 import com.example.ui.habits.HabitTrackerFullScreen
 import com.example.ui.screens.AppsCatalogScreen
 import com.example.ui.screens.FitHubHomeScreen
 import com.example.ui.screens.ProgressAnalyticsScreen
 import com.example.ui.screens.UserProfileScreen
 import com.example.ui.sleep.SleepTrackerFullScreen
+import com.example.ui.water.WaterTrackingFullScreen
 import com.example.viewmodel.FitHubViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,7 +54,6 @@ fun FitHubApp(
                         selectedTab = uiState.selectedTab,
                         onTabSelected = { viewModel.selectTab(it) },
                         onTrackerClick = { viewModel.selectTracker(it) },
-                        onMetricClick = { viewModel.selectMetric(it) },
                         onManageClick = { viewModel.setManageSheetOpen(true) },
                         onProfileClick = { viewModel.setProfileOpen(true) }
                     )
@@ -107,6 +106,10 @@ fun FitHubApp(
                 carbsGoal = uiState.carbsGoal,
                 totalFat = uiState.totalFatConsumed,
                 fatGoal = uiState.fatGoal,
+                currentSelectedDay = uiState.currentSelectedDay,
+                calendarDays = uiState.calendarDays,
+                selectedDayIndex = uiState.selectedDayIndex,
+                onSelectDay = { viewModel.selectCalendarDay(it) },
                 isCameraScanning = uiState.isCameraScanning,
                 scanResult = uiState.currentScanResult,
                 isAddFoodSheetOpen = uiState.isAddFoodSheetOpen,
@@ -161,9 +164,28 @@ fun FitHubApp(
             )
         }
 
+        // Full-screen Water Tracking with "Coming Soon" (Slides up from bottom!)
+        AnimatedVisibility(
+            visible = uiState.isWaterTrackerOpen,
+            enter = slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow)
+            ) + fadeIn(),
+            exit = slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessMedium)
+            ) + fadeOut()
+        ) {
+            WaterTrackingFullScreen(
+                onClose = { viewModel.closeWaterTracker() }
+            )
+        }
+
         // Bottom Sheets for Manage & Profile
         if (uiState.isManageSheetOpen) {
             ManageAppsSheet(
+                activeTrackerIds = uiState.trackers.map { it.id }.toSet(),
+                onToggleApp = { id, enabled -> viewModel.toggleAppInMyApps(id, enabled) },
                 onDismiss = { viewModel.setManageSheetOpen(false) }
             )
         }

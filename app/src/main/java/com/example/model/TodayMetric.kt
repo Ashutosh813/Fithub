@@ -2,8 +2,9 @@ package com.example.model
 
 enum class TodayMetricType {
     CALORIES,
-    WATER,
     HABITS,
+    SLEEP,
+    WATER,
     ACTIVITY
 }
 
@@ -17,6 +18,7 @@ data class TodayMetric(
     val isSecondaryBold: Boolean = false
 )
 
+// Default matches the initial 3 apps in My Apps: Calorie Tracker, Habit Tracker, Sleep Tracker
 val defaultTodayMetrics = listOf(
     TodayMetric(
         id = "today_calories",
@@ -24,15 +26,6 @@ val defaultTodayMetrics = listOf(
         type = TodayMetricType.CALORIES,
         primaryValue = "1,320",
         secondaryValue = "/ 2,500 kcal",
-        isPrimaryBold = true,
-        isSecondaryBold = false
-    ),
-    TodayMetric(
-        id = "today_water",
-        title = "Water",
-        type = TodayMetricType.WATER,
-        primaryValue = "4",
-        secondaryValue = "/ 8 glasses",
         isPrimaryBold = true,
         isSecondaryBold = false
     ),
@@ -46,12 +39,12 @@ val defaultTodayMetrics = listOf(
         isSecondaryBold = false
     ),
     TodayMetric(
-        id = "today_activity",
-        title = "Activity",
-        type = TodayMetricType.ACTIVITY,
-        primaryValue = "6,842",
-        secondaryValue = "steps",
+        id = "today_sleep",
+        title = "Sleep",
+        type = TodayMetricType.SLEEP,
+        primaryValue = "6.5",
+        secondaryValue = "/ 8 hrs",
         isPrimaryBold = true,
-        isSecondaryBold = true
+        isSecondaryBold = false
     )
 )

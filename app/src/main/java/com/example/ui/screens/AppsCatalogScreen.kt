@@ -77,7 +77,7 @@ fun AppsCatalogScreen(
         CatalogApp("Calorie Tracker", "AI meal logging & macronutrient breakdown", Icons.Rounded.LocalFireDepartment, AccentRed, "Active"),
         CatalogApp("Habit Tracker", "Streaks, daily check-ins & reminders", Icons.Rounded.Check, AccentGreen, "Active"),
         CatalogApp("Sleep Tracker", "Sleep cycles, bedtime alarms & recovery", Icons.Rounded.Bedtime, AccentPurple, "Active"),
-        CatalogApp("Hydration Tracker", "Smart water logging with intake goals", Icons.Rounded.WaterDrop, AccentBlue, "Available"),
+        CatalogApp("Water Tracking", "Smart water logging with intake goals", Icons.Rounded.WaterDrop, AccentBlue, "Coming Soon"),
         CatalogApp("Activity & Steps", "Pedometer, distance & cadence metrics", Icons.Rounded.DirectionsRun, AccentOrange, "Available"),
         CatalogApp("Workout Log", "Sets, reps, weights and gym routines", Icons.Rounded.FitnessCenter, AccentPurple, "Available"),
         CatalogApp("Mindfulness & Rest", "Guided breathwork and meditation timers", Icons.Rounded.SelfImprovement, AccentGreen, "Available")

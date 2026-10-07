@@ -4,6 +4,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,15 +26,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bedtime
-import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.NightsStay
-import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,8 +44,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.AccentBlue
-import com.example.ui.theme.AccentGreen
-import com.example.ui.theme.AccentOrange
 import com.example.ui.theme.AccentPurple
 import com.example.ui.theme.BackgroundColor
 import com.example.ui.theme.BorderColor
@@ -60,6 +60,14 @@ fun SleepTrackerFullScreen(
 ) {
     BackHandler { onClose() }
 
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    val draggableState = rememberDraggableState { delta ->
+        dragOffsetY += delta
+        if (dragOffsetY > 120f) {
+            onClose()
+        }
+    }
+
     Scaffold(
         modifier = modifier
             .fillMaxSize()
@@ -71,26 +79,33 @@ fun SleepTrackerFullScreen(
                     .fillMaxWidth()
                     .background(Color.White)
                     .statusBarsPadding()
+                    .draggable(
+                        state = draggableState,
+                        orientation = Orientation.Vertical,
+                        onDragStopped = { dragOffsetY = 0f }
+                    )
             ) {
+                // Top handle bar - drag down or tap minimizes
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp, bottom = 4.dp),
+                        .clickable(onClick = onClose)
+                        .padding(top = 10.dp, bottom = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
                         modifier = Modifier
-                            .width(36.dp)
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(Color(0xFFD1D1D6))
+                            .width(42.dp)
+                            .height(5.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(Color(0xFFC7C7CC))
                     )
                 }
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                        .padding(horizontal = 24.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -132,14 +147,17 @@ fun SleepTrackerFullScreen(
 
                     Box(
                         modifier = Modifier
-                            .size(38.dp)
                             .clip(CircleShape)
                             .background(Color(0xFFF2F2F7))
-                            .clickable(onClick = onClose)
-                            .testTag("close_sleep_tracker_button"),
-                        contentAlignment = Alignment.Center
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
-                        Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Close", tint = TextMain, modifier = Modifier.size(24.dp))
+                        Text(
+                            text = "Score: 88",
+                            fontFamily = InterFontFamily,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = AccentPurple
+                        )
                     }
                 }
             }

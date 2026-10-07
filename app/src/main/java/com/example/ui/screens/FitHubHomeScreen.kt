@@ -41,7 +41,6 @@ fun FitHubHomeScreen(
     selectedTab: NavTab,
     onTabSelected: (NavTab) -> Unit,
     onTrackerClick: (AppTracker) -> Unit,
-    onMetricClick: (TodayMetric) -> Unit,
     onManageClick: () -> Unit,
     onProfileClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -64,8 +63,7 @@ fun FitHubHomeScreen(
                 .padding(bottom = innerPadding.calculateBottomPadding())
                 .background(BackgroundColor)
                 .drawBehind {
-                    // Exact iOS radial gradient: circle at top right
-                    // rgba(255, 175, 120, 0.22) 0%, rgba(160, 205, 255, 0.22) 20%, transparent 45%
+                    // Exact iOS radial gradient glow at top right
                     val center = Offset(size.width * 1.05f, -size.height * 0.05f)
                     val radius = size.width * 1.25f
                     drawCircle(
@@ -94,42 +92,52 @@ fun FitHubHomeScreen(
                     onProfileClick = onProfileClick
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-                // "My Apps" Section Header
+                // "My Apps" Section Header - Extra bold
                 SectionHeader(
                     title = "My Apps",
                     actionText = "Manage >",
                     onActionClick = onManageClick
                 )
 
-                // 3 square apps per row grid
-                Row(
+                // 3 square apps per row grid with 3D tactile press cards
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 8.dp)
                         .testTag("my_apps_grid"),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    trackers.forEach { tracker ->
-                        AppTrackerCard(
-                            tracker = tracker,
-                            onClick = { onTrackerClick(tracker) },
-                            modifier = Modifier.weight(1f)
-                        )
+                    trackers.chunked(3).forEach { rowTrackers ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            rowTrackers.forEach { tracker ->
+                                AppTrackerCard(
+                                    tracker = tracker,
+                                    onClick = { onTrackerClick(tracker) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            if (rowTrackers.size < 3) {
+                                repeat(3 - rowTrackers.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-                // "Today" Section Card
+                // "Today" Section Card - Dynamic to active apps, read-only
                 TodayCard(
-                    metrics = todayMetrics,
-                    onMetricClick = onMetricClick
+                    metrics = todayMetrics
                 )
 
-                // Bottom padding to ensure comfortable scrolling above bottom bar
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(28.dp))
             }
         }
     }

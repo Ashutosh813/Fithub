@@ -251,6 +251,8 @@ fun TrackerDetailSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManageAppsSheet(
+    activeTrackerIds: Set<String>,
+    onToggleApp: (appId: String, isEnabled: Boolean) -> Unit,
     onDismiss: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState()
 ) {
@@ -285,7 +287,7 @@ fun ManageAppsSheet(
             }
 
             Text(
-                text = "Customize which trackers appear on your home grid.",
+                text = "Customize which trackers appear on your home grid. Adding or removing an app also syncs its data in the Today summary.",
                 fontFamily = InterFontFamily,
                 fontSize = 13.sp,
                 color = TextMuted,
@@ -293,43 +295,47 @@ fun ManageAppsSheet(
             )
 
             val availableWidgets = listOf(
-                Triple("Calorie Tracker", "Active on Home Grid", true),
-                Triple("Habit Tracker", "Active on Home Grid", true),
-                Triple("Sleep Tracker", "Active on Home Grid", true),
-                Triple("Water Hydration", "Tap to add to grid", false),
-                Triple("Workout Activity", "Tap to add to grid", false)
+                Triple("calorie", "Calorie Tracker", "AI meal logging & macros"),
+                Triple("habit", "Habit Tracker", "Daily habit streaks & routines"),
+                Triple("sleep", "Sleep Tracker", "Sleep stages & sleep score"),
+                Triple("water", "Water Tracking", "Hydration goals & sip tracking"),
+                Triple("activity", "Steps & Activity", "Pedometer & daily movement")
             )
 
-            availableWidgets.forEach { (title, subtitle, isActive) ->
+            availableWidgets.forEach { (id, title, subtitle) ->
+                val isActive = id in activeTrackerIds
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp)
+                        .padding(vertical = 6.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(CardBackground)
                         .border(0.5.dp, BorderColor, RoundedCornerShape(16.dp))
+                        .clickable {
+                            onToggleApp(id, !isActive)
+                        }
                         .padding(14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = title,
                             fontFamily = InterFontFamily,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.5.sp,
                             color = TextMain
                         )
                         Text(
-                            text = subtitle,
+                            text = if (isActive) "Active on Home Grid" else subtitle,
                             fontFamily = InterFontFamily,
-                            fontSize = 11.sp,
-                            color = TextMuted
+                            fontSize = 11.5.sp,
+                            color = if (isActive) AccentPurple else TextMuted
                         )
                     }
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(30.dp)
                             .clip(CircleShape)
                             .background(if (isActive) AccentPurple else Color(0xFFF2F2F7)),
                         contentAlignment = Alignment.Center
@@ -344,14 +350,14 @@ fun ManageAppsSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             Button(
                 onClick = onDismiss,
                 colors = ButtonDefaults.buttonColors(containerColor = AccentPurple),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Save Preferences", fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold)
+                Text("Done", fontFamily = InterFontFamily, fontWeight = FontWeight.SemiBold)
             }
         }
     }
