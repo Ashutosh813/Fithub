@@ -20,10 +20,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AvTimer
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.LocalFireDepartment
+import androidx.compose.material.icons.rounded.SelfImprovement
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -141,6 +143,8 @@ fun AppTrackerCard(
                     TrackerIconType.SLEEP -> Icons.Rounded.Bedtime
                     TrackerIconType.WATER -> Icons.Rounded.WaterDrop
                     TrackerIconType.WORKOUT -> Icons.Rounded.FitnessCenter
+                    TrackerIconType.FASTING -> Icons.Rounded.AvTimer
+                    TrackerIconType.MEDITATION -> Icons.Rounded.SelfImprovement
                 }
                 Icon(
                     imageVector = iconVector,

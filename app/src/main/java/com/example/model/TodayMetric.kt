@@ -5,7 +5,10 @@ enum class TodayMetricType {
     HABITS,
     SLEEP,
     WATER,
-    ACTIVITY
+    ACTIVITY,
+    WORKOUT,
+    FASTING,
+    MEDITATION
 }
 
 data class TodayMetric(
@@ -19,6 +22,7 @@ data class TodayMetric(
 )
 
 // Default matches the initial 3 apps in My Apps: Calorie Tracker, Habit Tracker, Sleep Tracker
+// If an app is not present in My Apps, its metric is NOT shown in Today card
 val defaultTodayMetrics = listOf(
     TodayMetric(
         id = "today_calories",

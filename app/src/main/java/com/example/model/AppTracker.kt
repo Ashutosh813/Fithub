@@ -1,8 +1,12 @@
 package com.example.model
 
 import androidx.compose.ui.graphics.Color
+import com.example.ui.theme.AccentBlue
+import com.example.ui.theme.AccentBlueLight
 import com.example.ui.theme.AccentGreen
 import com.example.ui.theme.AccentGreenLight
+import com.example.ui.theme.AccentOrange
+import com.example.ui.theme.AccentOrangeLight
 import com.example.ui.theme.AccentPurple
 import com.example.ui.theme.AccentPurpleLight
 import com.example.ui.theme.AccentRed
@@ -13,7 +17,9 @@ enum class TrackerIconType {
     HABIT,
     SLEEP,
     WATER,
-    WORKOUT
+    WORKOUT,
+    FASTING,
+    MEDITATION
 }
 
 data class AppTracker(
@@ -30,6 +36,7 @@ data class AppTracker(
     val iconBgLight: Color
 )
 
+// Default initial apps in My Apps (Water is NOT here initially, added via Manage)
 val defaultTrackers = listOf(
     AppTracker(
         id = "calorie",

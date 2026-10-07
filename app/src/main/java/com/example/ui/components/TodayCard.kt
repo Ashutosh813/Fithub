@@ -19,10 +19,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AvTimer
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.DirectionsRun
+import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.LocalFireDepartment
+import androidx.compose.material.icons.rounded.SelfImprovement
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -174,6 +177,9 @@ fun TodayItem(
         TodayMetricType.HABITS -> Icons.Rounded.Check
         TodayMetricType.ACTIVITY -> Icons.Rounded.DirectionsRun
         TodayMetricType.SLEEP -> Icons.Rounded.Bedtime
+        TodayMetricType.WORKOUT -> Icons.Rounded.FitnessCenter
+        TodayMetricType.FASTING -> Icons.Rounded.AvTimer
+        TodayMetricType.MEDITATION -> Icons.Rounded.SelfImprovement
     }
 
     val iconColor = when (metric.type) {
@@ -182,6 +188,9 @@ fun TodayItem(
         TodayMetricType.HABITS -> Color(0xFF34C759)
         TodayMetricType.ACTIVITY -> Color(0xFFFF9500)
         TodayMetricType.SLEEP -> Color(0xFF5856D6)
+        TodayMetricType.WORKOUT -> Color(0xFF8B5CF6)
+        TodayMetricType.FASTING -> Color(0xFFF59E0B)
+        TodayMetricType.MEDITATION -> Color(0xFF10B981)
     }
 
     Row(

@@ -21,10 +21,13 @@ import com.example.model.sampleFoodDatabase
 import com.example.ui.theme.AccentBlue
 import com.example.ui.theme.AccentBlueLight
 import com.example.ui.theme.AccentGreen
+import com.example.ui.theme.AccentGreenLight
 import com.example.ui.theme.AccentOrange
 import com.example.ui.theme.AccentOrangeLight
 import com.example.ui.theme.AccentPurple
+import com.example.ui.theme.AccentPurpleLight
 import com.example.ui.theme.AccentRed
+import com.example.ui.theme.AccentRedLight
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -51,6 +54,8 @@ data class FitHubUiState(
     val isHabitTrackerOpen: Boolean = false,
     val isSleepTrackerOpen: Boolean = false,
     val isWaterTrackerOpen: Boolean = false,
+    val isComingSoonOpen: Boolean = false,
+    val activeComingSoonApp: AppTracker? = null,
 
     // Cal AI Calendar & State
     val selectedDayIndex: Int = 18, // 18 is Today Wed 07
@@ -72,7 +77,10 @@ data class FitHubUiState(
     val userWaterGlasses: Int = 4,
     val userHabitsDone: Int = 3,
     val userSteps: Int = 6842,
-    val userSleepHours: Float = 6.5f
+    val userSleepHours: Float = 6.5f,
+    val userWorkoutsDone: Int = 1,
+    val userFastingHours: Float = 14f,
+    val userMeditationMinutes: Int = 15
 ) {
     val currentSelectedDay: CalAiDayData
         get() = calendarDays.getOrNull(selectedDayIndex) ?: calendarDays[18]
@@ -119,7 +127,10 @@ class FitHubViewModel : ViewModel() {
     }
 
     fun selectCalendarDay(index: Int) {
-        _uiState.update { it.copy(selectedDayIndex = index.coerceIn(0, it.calendarDays.size - 1)) }
+        val targetDay = _uiState.value.calendarDays.getOrNull(index)
+        if (targetDay != null && !targetDay.isFuture) {
+            _uiState.update { it.copy(selectedDayIndex = index.coerceIn(0, it.calendarDays.size - 1)) }
+        }
     }
 
     fun selectTracker(tracker: AppTracker?) {
@@ -132,11 +143,11 @@ class FitHubViewModel : ViewModel() {
             TrackerIconType.HABIT -> openHabitTracker()
             TrackerIconType.SLEEP -> openSleepTracker()
             TrackerIconType.WATER -> openWaterTracker()
-            else -> _uiState.update { it.copy(selectedTracker = tracker) }
+            else -> openComingSoonApp(tracker)
         }
     }
 
-    // Do NOT open trackers when clicking Today card stats
+    // Do NOT open trackers when clicking Today card stats (display only)
     fun selectMetric(metric: TodayMetric?) {
         _uiState.update { it.copy(selectedMetric = metric) }
     }
@@ -203,6 +214,26 @@ class FitHubViewModel : ViewModel() {
         _uiState.update { it.copy(isWaterTrackerOpen = false) }
     }
 
+    fun openComingSoonApp(tracker: AppTracker) {
+        _uiState.update {
+            it.copy(
+                isComingSoonOpen = true,
+                activeComingSoonApp = tracker,
+                selectedTracker = null,
+                selectedMetric = null
+            )
+        }
+    }
+
+    fun closeComingSoonApp() {
+        _uiState.update {
+            it.copy(
+                isComingSoonOpen = false,
+                activeComingSoonApp = null
+            )
+        }
+    }
+
     // Toggle apps in My Apps and dynamically synchronize Today Card metrics
     fun toggleAppInMyApps(appId: String, isEnabled: Boolean) {
         _uiState.update { state ->
@@ -216,11 +247,11 @@ class FitHubViewModel : ViewModel() {
                             id = "water",
                             title = "Water Tracking",
                             iconType = TrackerIconType.WATER,
-                            currentValue = 4f,
+                            currentValue = state.userWaterGlasses.toFloat(),
                             targetValue = 8f,
-                            currentFormatted = "4",
+                            currentFormatted = "${state.userWaterGlasses}",
                             targetFormatted = "/ 8 glasses",
-                            progress = 0.5f,
+                            progress = (state.userWaterGlasses / 8f).coerceIn(0f, 1f),
                             progressColor = AccentBlue,
                             iconColor = AccentBlue,
                             iconBgLight = AccentBlueLight
@@ -231,7 +262,7 @@ class FitHubViewModel : ViewModel() {
                             id = "activity",
                             title = "Activity Steps",
                             iconType = TrackerIconType.WORKOUT,
-                            currentValue = 6842f,
+                            currentValue = state.userSteps.toFloat(),
                             targetValue = 10000f,
                             currentFormatted = "6.8k",
                             targetFormatted = "/ 10k steps",
@@ -239,6 +270,51 @@ class FitHubViewModel : ViewModel() {
                             progressColor = AccentOrange,
                             iconColor = AccentOrange,
                             iconBgLight = AccentOrangeLight
+                        )
+                    )
+                    "workout" -> currentTrackers.add(
+                        AppTracker(
+                            id = "workout",
+                            title = "Workout Log",
+                            iconType = TrackerIconType.WORKOUT,
+                            currentValue = 1f,
+                            targetValue = 1f,
+                            currentFormatted = "1",
+                            targetFormatted = "/ 1 session",
+                            progress = 1.0f,
+                            progressColor = AccentPurple,
+                            iconColor = AccentPurple,
+                            iconBgLight = AccentPurpleLight
+                        )
+                    )
+                    "fasting" -> currentTrackers.add(
+                        AppTracker(
+                            id = "fasting",
+                            title = "Intermittent Fasting",
+                            iconType = TrackerIconType.FASTING,
+                            currentValue = 14f,
+                            targetValue = 16f,
+                            currentFormatted = "14",
+                            targetFormatted = "/ 16 hrs",
+                            progress = 0.875f,
+                            progressColor = AccentOrange,
+                            iconColor = AccentOrange,
+                            iconBgLight = AccentOrangeLight
+                        )
+                    )
+                    "meditation" -> currentTrackers.add(
+                        AppTracker(
+                            id = "meditation",
+                            title = "Mindfulness & Rest",
+                            iconType = TrackerIconType.MEDITATION,
+                            currentValue = 15f,
+                            targetValue = 20f,
+                            currentFormatted = "15",
+                            targetFormatted = "/ 20 mins",
+                            progress = 0.75f,
+                            progressColor = AccentGreen,
+                            iconColor = AccentGreen,
+                            iconBgLight = AccentGreenLight
                         )
                     )
                     "calorie" -> defaultTrackers.firstOrNull { it.id == "calorie" }?.let { currentTrackers.add(it) }
@@ -307,6 +383,39 @@ class FitHubViewModel : ViewModel() {
                         primaryValue = NumberFormat.getNumberInstance(Locale.US).format(state.userSteps),
                         secondaryValue = "steps",
                         isSecondaryBold = true
+                    )
+                )
+            }
+            if ("workout" in activeIds) {
+                updatedTodayMetrics.add(
+                    TodayMetric(
+                        id = "today_workout",
+                        title = "Workouts",
+                        type = TodayMetricType.WORKOUT,
+                        primaryValue = state.userWorkoutsDone.toString(),
+                        secondaryValue = "/ 1 session completed"
+                    )
+                )
+            }
+            if ("fasting" in activeIds) {
+                updatedTodayMetrics.add(
+                    TodayMetric(
+                        id = "today_fasting",
+                        title = "Fasting",
+                        type = TodayMetricType.FASTING,
+                        primaryValue = "${state.userFastingHours.toInt()}h",
+                        secondaryValue = "/ 16h target"
+                    )
+                )
+            }
+            if ("meditation" in activeIds) {
+                updatedTodayMetrics.add(
+                    TodayMetric(
+                        id = "today_meditation",
+                        title = "Mindfulness",
+                        type = TodayMetricType.MEDITATION,
+                        primaryValue = "${state.userMeditationMinutes}m",
+                        secondaryValue = "/ 20m target"
                     )
                 )
             }

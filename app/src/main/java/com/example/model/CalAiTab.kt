@@ -3,7 +3,7 @@ package com.example.model
 enum class CalAiTab(val label: String) {
     HOME("Home"),
     CAMERA("Camera"),
-    PROGRESS("Analytics")
+    PROGRESS("Progress")
 }
 
 data class AiScanResult(

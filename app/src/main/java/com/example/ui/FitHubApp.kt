@@ -18,11 +18,20 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.model.NavTab
+import com.example.model.TrackerIconType
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AvTimer
+import androidx.compose.material.icons.rounded.DirectionsRun
+import androidx.compose.material.icons.rounded.FitnessCenter
+import androidx.compose.material.icons.rounded.SelfImprovement
+import androidx.compose.material.icons.rounded.Spa
 import com.example.ui.calai.CalAiScreen
 import com.example.ui.components.ManageAppsSheet
 import com.example.ui.components.ProfileSheet
 import com.example.ui.habits.HabitTrackerFullScreen
 import com.example.ui.screens.AppsCatalogScreen
+import com.example.ui.screens.ComingSoonAppScreen
+import com.example.ui.screens.ComingSoonFeatureInfo
 import com.example.ui.screens.FitHubHomeScreen
 import com.example.ui.screens.ProgressAnalyticsScreen
 import com.example.ui.screens.UserProfileScreen
@@ -60,6 +69,8 @@ fun FitHubApp(
                 }
                 NavTab.APPS -> {
                     AppsCatalogScreen(
+                        activeTrackerIds = uiState.trackers.map { it.id }.toSet(),
+                        onToggleApp = { id, enabled -> viewModel.toggleAppInMyApps(id, enabled) },
                         selectedTab = uiState.selectedTab,
                         onTabSelected = { viewModel.selectTab(it) },
                         onBack = { viewModel.selectTab(NavTab.HOME) }
@@ -179,6 +190,70 @@ fun FitHubApp(
             WaterTrackingFullScreen(
                 onClose = { viewModel.closeWaterTracker() }
             )
+        }
+
+        // Full-screen Coming Soon for unbuilt modules (Slides up from bottom!)
+        AnimatedVisibility(
+            visible = uiState.isComingSoonOpen && uiState.activeComingSoonApp != null,
+            enter = slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow)
+            ) + fadeIn(),
+            exit = slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessMedium)
+            ) + fadeOut()
+        ) {
+            uiState.activeComingSoonApp?.let { app ->
+                val (category, icon, features) = when (app.iconType) {
+                    TrackerIconType.WORKOUT -> Triple(
+                        "Activity",
+                        if (app.id == "activity") Icons.Rounded.DirectionsRun else Icons.Rounded.FitnessCenter,
+                        listOf(
+                            ComingSoonFeatureInfo("Pedometer & Step Goals", "Automatic step detection, distance calculations and cadence analytics."),
+                            ComingSoonFeatureInfo("Active Calorie Burn", "Metabolic equivalent estimation integrated with heart rate sensors."),
+                            ComingSoonFeatureInfo("Health Connect Sync", "Two-way live synchronization with Wear OS and fitness wearables.")
+                        )
+                    )
+                    TrackerIconType.FASTING -> Triple(
+                        "Fasting",
+                        Icons.Rounded.AvTimer,
+                        listOf(
+                            ComingSoonFeatureInfo("Circadian Rhythm Window", "16:8, 18:6, 20:4, and custom circadian fasting timer presets."),
+                            ComingSoonFeatureInfo("Autophagy & Ketosis Stages", "Visual indicators for metabolic state progression throughout fasts."),
+                            ComingSoonFeatureInfo("Gentle Fasting Alerts", "Helpful milestone notifications to stay on track comfortably.")
+                        )
+                    )
+                    TrackerIconType.MEDITATION -> Triple(
+                        "Mindfulness",
+                        Icons.Rounded.SelfImprovement,
+                        listOf(
+                            ComingSoonFeatureInfo("Box Breathing Exercises", "Science-backed visual pacing for immediate stress reduction."),
+                            ComingSoonFeatureInfo("Daily Mindful Streaks", "Build lifelong daily meditation and intentional reflection habits."),
+                            ComingSoonFeatureInfo("Ambient Soundscapes", "Calming binaural beats and nature audio tracks for focus and sleep.")
+                        )
+                    )
+                    else -> Triple(
+                        "Wellness",
+                        Icons.Rounded.Spa,
+                        listOf(
+                            ComingSoonFeatureInfo("Automated Daily Logging", "Seamless tracking of daily metrics and milestones."),
+                            ComingSoonFeatureInfo("Intelligent AI Analytics", "Personalized insights and tips to reach your fitness goals."),
+                            ComingSoonFeatureInfo("FitHub Dashboard Sync", "Live updates on your Home grid and Today overview.")
+                        )
+                    )
+                }
+
+                ComingSoonAppScreen(
+                    appName = app.title,
+                    categoryBadge = category,
+                    subtitle = "Modular AI Fitness Feature",
+                    iconVector = icon,
+                    themeColor = app.progressColor,
+                    features = features,
+                    onClose = { viewModel.closeComingSoonApp() }
+                )
+            }
         }
 
         // Bottom Sheets for Manage & Profile

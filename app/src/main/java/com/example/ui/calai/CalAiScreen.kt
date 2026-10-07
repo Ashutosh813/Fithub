@@ -49,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -112,7 +113,7 @@ fun CalAiScreen(
         }
     }
 
-    // Scroll to current selected day (index 18) initially
+    // Scroll to current selected day initially
     val calendarListState = rememberLazyListState()
     LaunchedEffect(Unit) {
         if (selectedDayIndex > 3) {
@@ -154,162 +155,242 @@ fun CalAiScreen(
                     )
                 }
 
-                // Header Row (Streak Pill on right, date title on left)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = if (currentSelectedDay.isToday) "Today" else "${currentSelectedDay.dayName}, Oct ${currentSelectedDay.dayNumber}",
-                            fontFamily = InterFontFamily,
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Black,
-                            color = TextMain
-                        )
-                        Text(
-                            text = if (currentSelectedDay.isToday) "Stay on track today" else "Past log overview",
-                            fontFamily = InterFontFamily,
-                            fontSize = 11.5.sp,
-                            color = TextMuted
-                        )
-                    }
-
-                    // Streak Badge Pill (🔥 14)
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(Color(0xFFFFF7ED))
-                            .border(0.5.dp, Color(0xFFFFEDD5), CircleShape)
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
+                when (currentTab) {
+                    CalAiTab.HOME -> {
+                        // Header Row on Home (Date title without writing "Today", streak badge on right)
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.LocalFireDepartment,
-                                contentDescription = "Streak",
-                                tint = AccentOrange,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "14",
-                                fontFamily = InterFontFamily,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextMain
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Scrollable 21-Day Calendar Pills Strip (Inspired by uploaded image 2)
-                LazyRow(
-                    state = calendarListState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp)
-                ) {
-                    itemsIndexed(calendarDays) { index, day ->
-                        val isSelected = index == selectedDayIndex
-
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier
-                                .clip(RoundedCornerShape(26.dp))
-                                .background(if (isSelected) Color(0xFFF3F4F6) else Color.White)
-                                .border(
-                                    width = if (isSelected) 1.5.dp else 0.5.dp,
-                                    color = if (isSelected) Color(0xFF111115) else Color(0x18000000),
-                                    shape = RoundedCornerShape(26.dp)
-                                )
-                                .clickable { onSelectDay(index) }
-                                .padding(horizontal = 10.dp, vertical = 10.dp)
-                                .testTag("calendar_day_$index")
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = day.dayName,
-                                fontFamily = InterFontFamily,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected || day.isToday) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) TextMain else TextMuted
-                            )
+                            Column {
+                                Text(
+                                    text = "${currentSelectedDay.dayName}, Oct ${currentSelectedDay.dayNumber}",
+                                    fontFamily = InterFontFamily,
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = TextMain
+                                )
+                                Text(
+                                    text = if (currentSelectedDay.isToday) "Daily nutrition & macro intake" else "Past log overview",
+                                    fontFamily = InterFontFamily,
+                                    fontSize = 11.5.sp,
+                                    color = TextMuted
+                                )
+                            }
 
-                            // Date circle with status checkmark badge
+                            // Streak Badge Pill (🔥 14)
                             Box(
-                                modifier = Modifier.size(36.dp),
-                                contentAlignment = Alignment.Center
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFFF7ED))
+                                    .border(0.5.dp, Color(0xFFFFEDD5), CircleShape)
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(34.dp)
-                                        .clip(CircleShape)
-                                        .background(if (isSelected) Color(0xFF111115) else Color(0xFFF9FAFB))
-                                        .border(
-                                            width = if (day.isToday && !isSelected) 2.dp else 0.5.dp,
-                                            color = if (day.isToday && !isSelected) Color(0xFF5856D6) else Color(0x14000000),
-                                            shape = CircleShape
-                                        ),
-                                    contentAlignment = Alignment.Center
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.LocalFireDepartment,
+                                        contentDescription = "Streak",
+                                        tint = AccentOrange,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                     Text(
-                                        text = day.dayNumber,
+                                        text = "14",
                                         fontFamily = InterFontFamily,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) Color.White else TextMain
+                                        color = TextMain
                                     )
                                 }
+                            }
+                        }
 
-                                // Checkmark badge on top right for completed days (matching image 2)
-                                if (day.hasLog && !isSelected) {
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        // Scrollable 21-Day Calendar Pills Strip - ONLY shown on HOME tab
+                        LazyRow(
+                            state = calendarListState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp)
+                        ) {
+                            itemsIndexed(calendarDays) { index, day ->
+                                val isSelected = index == selectedDayIndex
+                                val isFuture = day.isFuture
+
+                                // Tick mark is ONLY shown if calorie, protein, fat, carbs intake is completely met/reached!
+                                val isIntakeComplete = if (day.isToday) {
+                                    (totalCalories >= calorieGoal && totalProtein >= proteinGoal && totalCarbs >= carbsGoal && totalFat >= fatGoal)
+                                } else {
+                                    day.isGoalsCompleted
+                                }
+
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier
+                                        .alpha(if (isFuture) 0.38f else 1f)
+                                        .clip(RoundedCornerShape(26.dp))
+                                        .background(
+                                            when {
+                                                isSelected -> Color(0xFFF3F4F6)
+                                                isFuture -> Color(0xFFF9FAFB)
+                                                else -> Color.White
+                                            }
+                                        )
+                                        // Present day is distinguished with a light outline (NO "Today" text added)
+                                        .border(
+                                            width = when {
+                                                isSelected -> 1.5.dp
+                                                day.isToday -> 1.5.dp
+                                                else -> 0.5.dp
+                                            },
+                                            color = when {
+                                                isSelected -> Color(0xFF111115)
+                                                day.isToday -> Color(0xFF111115).copy(alpha = 0.38f) // Light outline for today
+                                                isFuture -> Color(0x0C000000)
+                                                else -> Color(0x18000000)
+                                            },
+                                            shape = RoundedCornerShape(26.dp)
+                                        )
+                                        .clickable(enabled = !isFuture) { onSelectDay(index) }
+                                        .padding(horizontal = 10.dp, vertical = 10.dp)
+                                        .testTag("calendar_day_$index")
+                                ) {
+                                    Text(
+                                        text = day.dayName,
+                                        fontFamily = InterFontFamily,
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isSelected || day.isToday) FontWeight.Bold else FontWeight.Medium,
+                                        color = when {
+                                            isFuture -> Color(0xFFB0B0B8)
+                                            isSelected -> TextMain
+                                            else -> TextMuted
+                                        }
+                                    )
+
+                                    // Date circle with tick mark badge if goal complete
                                     Box(
-                                        modifier = Modifier
-                                            .align(Alignment.TopEnd)
-                                            .size(13.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFF5856D6)),
+                                        modifier = Modifier.size(36.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Check,
-                                            contentDescription = null,
-                                            tint = Color.White,
-                                            modifier = Modifier.size(9.dp)
-                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .size(34.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    when {
+                                                        isSelected -> Color(0xFF111115)
+                                                        isFuture -> Color(0xFFF3F4F6)
+                                                        else -> Color(0xFFF9FAFB)
+                                                    }
+                                                )
+                                                .border(
+                                                    width = if (day.isToday && !isSelected) 1.5.dp else 0.5.dp,
+                                                    color = if (day.isToday && !isSelected) Color(0xFF111115).copy(alpha = 0.32f) else Color(0x14000000),
+                                                    shape = CircleShape
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = day.dayNumber,
+                                                fontFamily = InterFontFamily,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = when {
+                                                    isSelected -> Color.White
+                                                    isFuture -> Color(0xFFB0B0B8)
+                                                    else -> TextMain
+                                                }
+                                            )
+                                        }
+
+                                        // Tick mark ONLY on days where calorie, protein, fat etc intake is completed!
+                                        if (isIntakeComplete && !isSelected && !isFuture) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .align(Alignment.TopEnd)
+                                                    .size(13.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color(0xFF10B981)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Check,
+                                                    contentDescription = "Goals Complete",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(9.dp)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
+                        }
+                    }
+                    CalAiTab.PROGRESS -> {
+                        // Header on Progress tab - NO calendar date/day pills row!
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Progress",
+                                    fontFamily = InterFontFamily,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = (-0.4).sp,
+                                    color = TextMain
+                                )
+                                Text(
+                                    text = "Weekly analytics & macronutrient trends",
+                                    fontFamily = InterFontFamily,
+                                    fontSize = 11.5.sp,
+                                    color = TextMuted
+                                )
+                            }
 
-                            // Distinct PRESENT DAY label indicator
-                            if (day.isToday) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(CircleShape)
-                                        .background(if (isSelected) Color(0xFF111115) else Color(0xFF5856D6))
-                                        .padding(horizontal = 6.dp, vertical = 1.dp)
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFFF7ED))
+                                    .border(0.5.dp, Color(0xFFFFEDD5), CircleShape)
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.LocalFireDepartment,
+                                        contentDescription = "Streak",
+                                        tint = AccentOrange,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                     Text(
-                                        text = "TODAY",
+                                        text = "14",
                                         fontFamily = InterFontFamily,
-                                        fontSize = 7.5.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = Color.White
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextMain
                                     )
                                 }
-                            } else {
-                                Spacer(modifier = Modifier.height(11.dp))
                             }
                         }
+                    }
+                    CalAiTab.CAMERA -> {
+                        // Camera tab has its own full screen scanning interface
                     }
                 }
             }
@@ -460,7 +541,7 @@ fun CleanCalBottomBar(
                 )
             }
 
-            // Analytics Tab
+            // Progress Tab (Replaced Analytics with Progress)
             Column(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
@@ -475,12 +556,12 @@ fun CleanCalBottomBar(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.QueryStats,
-                    contentDescription = "Analytics",
+                    contentDescription = "Progress",
                     tint = if (selectedTab == CalAiTab.PROGRESS) Color(0xFF111115) else TextMuted,
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
-                    text = "Analytics",
+                    text = "Progress",
                     fontFamily = InterFontFamily,
                     fontSize = 11.sp,
                     fontWeight = if (selectedTab == CalAiTab.PROGRESS) FontWeight.Bold else FontWeight.Medium,

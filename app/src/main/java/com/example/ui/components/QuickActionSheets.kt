@@ -13,8 +13,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
@@ -266,6 +268,7 @@ fun ManageAppsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 36.dp)
         ) {
@@ -298,8 +301,11 @@ fun ManageAppsSheet(
                 Triple("calorie", "Calorie Tracker", "AI meal logging & macros"),
                 Triple("habit", "Habit Tracker", "Daily habit streaks & routines"),
                 Triple("sleep", "Sleep Tracker", "Sleep stages & sleep score"),
-                Triple("water", "Water Tracking", "Hydration goals & sip tracking"),
-                Triple("activity", "Steps & Activity", "Pedometer & daily movement")
+                Triple("water", "Water Tracking", "Smart hydration goals & sip logging (Coming Soon)"),
+                Triple("activity", "Activity Steps", "Pedometer & daily movement (Coming Soon)"),
+                Triple("workout", "Workout Log", "Sets, reps & gym routines (Coming Soon)"),
+                Triple("fasting", "Intermittent Fasting", "Fasting window timer (Coming Soon)"),
+                Triple("meditation", "Mindfulness & Rest", "Breathwork & daily mindfulness (Coming Soon)")
             )
 
             availableWidgets.forEach { (id, title, subtitle) ->
