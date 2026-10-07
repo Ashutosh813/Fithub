@@ -21,8 +21,10 @@ import com.example.ui.theme.InterFontFamily
 import com.example.ui.theme.TextMain
 
 /**
- * SectionHeader matching attached reference design:
- * "My Apps" on left in bold black, "Manage >" on right in gentle blue/purple (Color(0xFF4F46E5))
+ * SectionHeader matching HTML .section-header:
+ * - padding: 10px 20px; margin-top: 6px;
+ * - h2: font-size: 20px; font-weight: 700; color: var(--text-main); letter-spacing: -0.4px;
+ * - a: font-size: 13px; color: var(--accent-purple) (#5856d6); font-weight: 600;
  */
 @Composable
 fun SectionHeader(
@@ -34,7 +36,7 @@ fun SectionHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 22.dp, vertical = 6.dp)
+            .padding(horizontal = 20.dp, vertical = 8.dp)
             .testTag("section_header_$title"),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -42,17 +44,17 @@ fun SectionHeader(
         Text(
             text = title,
             fontFamily = InterFontFamily,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = (-0.5).sp,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.4).sp,
             color = TextMain
         )
         Text(
             text = actionText,
             fontFamily = InterFontFamily,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF4F46E5), // Indigo blue matching screenshot
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF5856D6), // var(--accent-purple)
             modifier = Modifier
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },

@@ -29,11 +29,27 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.BorderColor
 import com.example.ui.theme.InterFontFamily
 import com.example.ui.theme.TextMain
 import com.example.ui.theme.TextMuted
 
+/**
+ * FitHubHeader matching HTML .header:
+ * - padding: 48px 20px 16px; (handled via top padding / status bars)
+ * - .header-left: gap: 12px;
+ * - .logo-small:
+ *   - font-size: 10px; font-weight: 700; line-height: 1.2; text-align: center;
+ *   - background: #ffffff; padding: 6px; border-radius: 12px;
+ *   - box-shadow: 0 4px 12px rgba(0,0,0,0.04); border: 0.5px solid rgba(0, 0, 0, 0.08);
+ *   - span: font-weight: 400; color: var(--text-muted);
+ * - .header-title-container:
+ *   - h1: font-size: 26px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; margin-bottom: 2px;
+ *   - p: font-size: 13px; color: var(--text-muted); letter-spacing: -0.2px;
+ * - .profile-icon:
+ *   - width: 42px; height: 42px; background: #ffffff; border-radius: 50%;
+ *   - font-size: 18px; color: var(--text-main);
+ *   - box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 0.5px solid rgba(0, 0, 0, 0.08);
+ */
 @Composable
 fun FitHubHeader(
     onProfileClick: () -> Unit,
@@ -47,24 +63,24 @@ fun FitHubHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left: Logo badge + Title/Subtitle
+        // .header-left: display: flex; align-items: center; gap: 12px;
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Small badge with "FitHub" + "fitness"
+            // .logo-small
             Box(
                 modifier = Modifier
                     .shadow(
-                        elevation = 3.dp,
+                        elevation = 4.dp,
                         shape = RoundedCornerShape(12.dp),
                         ambientColor = Color(0x0A000000),
                         spotColor = Color(0x0F000000)
                     )
                     .clip(RoundedCornerShape(12.dp))
                     .background(Color.White)
-                    .border(0.5.dp, BorderColor, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                    .border(0.5.dp, Color(0x14000000), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 7.dp, vertical = 6.dp)
                     .testTag("header_logo_badge"),
                 contentAlignment = Alignment.Center
             ) {
@@ -90,7 +106,7 @@ fun FitHubHeader(
                 }
             }
 
-            // Header titles
+            // .header-title-container
             Column {
                 Text(
                     text = "FitHub",
@@ -111,22 +127,22 @@ fun FitHubHeader(
             }
         }
 
-        // Right: Profile icon button
+        // .profile-icon: 42px x 42px
         Box(
             modifier = Modifier
                 .size(42.dp)
                 .shadow(
                     elevation = 4.dp,
                     shape = CircleShape,
-                    ambientColor = Color(0x0A000000),
-                    spotColor = Color(0x14000000)
+                    ambientColor = Color(0x0D000000),
+                    spotColor = Color(0x12000000)
                 )
                 .clip(CircleShape)
                 .background(Color.White)
-                .border(0.5.dp, BorderColor, CircleShape)
+                .border(0.5.dp, Color(0x14000000), CircleShape)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
-                    indication = ripple(bounded = true, color = TextMain.copy(alpha = 0.2f)),
+                    indication = ripple(bounded = true, color = TextMain.copy(alpha = 0.15f)),
                     onClick = onProfileClick
                 )
                 .testTag("profile_button"),
@@ -136,7 +152,7 @@ fun FitHubHeader(
                 imageVector = Icons.Rounded.Person,
                 contentDescription = "User Profile",
                 tint = TextMain,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(18.dp)
             )
         }
     }

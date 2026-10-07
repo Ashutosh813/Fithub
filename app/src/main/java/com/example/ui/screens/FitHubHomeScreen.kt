@@ -30,10 +30,17 @@ import com.example.ui.components.FitHubBottomNav
 import com.example.ui.components.FitHubHeader
 import com.example.ui.components.SectionHeader
 import com.example.ui.components.TodayCard
-import com.example.ui.theme.BackgroundColor
-import com.example.ui.theme.GlowBlue
-import com.example.ui.theme.GlowPeach
 
+/**
+ * FitHubHomeScreen: 1-to-1 exact Kotlin Jetpack Compose implementation of the HTML/CSS template:
+ * - background-color: #f8f8f8;
+ * - background-image: radial-gradient(circle at top right, rgba(255, 175, 120, 0.22) 0%, rgba(160, 205, 255, 0.22) 20%, #fcfcfc 45%);
+ * - Header (.header)
+ * - Section Header (.section-header) "My Apps" + "Manage >"
+ * - Apps Grid (.apps-grid): grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 8px 20px;
+ * - Today Section (.today-container): TodayCard with .today-grid: 1fr 1fr; gap: 16px;
+ * - Glassmorphic Bottom Nav (.bottom-nav)
+ */
 @Composable
 fun FitHubHomeScreen(
     trackers: List<AppTracker>,
@@ -49,7 +56,7 @@ fun FitHubHomeScreen(
         modifier = modifier
             .fillMaxSize()
             .testTag("fithub_home_scaffold"),
-        containerColor = BackgroundColor,
+        containerColor = Color(0xFFF8F8F8),
         bottomBar = {
             FitHubBottomNav(
                 selectedTab = selectedTab,
@@ -61,17 +68,17 @@ fun FitHubHomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = innerPadding.calculateBottomPadding())
-                .background(BackgroundColor)
+                .background(Color(0xFFF8F8F8))
                 .drawBehind {
-                    // Exact iOS radial gradient glow at top right
-                    val center = Offset(size.width * 1.05f, -size.height * 0.05f)
-                    val radius = size.width * 1.25f
+                    // Exact HTML CSS radial gradient: circle at top right, rgba(255, 175, 120, 0.22) 0%, rgba(160, 205, 255, 0.22) 20%, #fcfcfc 45%
+                    val center = Offset(size.width * 1.0f, 0f)
+                    val radius = size.width * 1.15f
                     drawCircle(
                         brush = Brush.radialGradient(
                             colorStops = arrayOf(
-                                0.0f to GlowPeach,
-                                0.25f to GlowBlue,
-                                0.55f to Color.Transparent
+                                0.00f to Color(0x38FFAF78), // rgba(255, 175, 120, 0.22)
+                                0.20f to Color(0x38A0CDFF), // rgba(160, 205, 255, 0.22)
+                                0.45f to Color.Transparent
                             ),
                             center = center,
                             radius = radius
@@ -92,16 +99,14 @@ fun FitHubHomeScreen(
                     onProfileClick = onProfileClick
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // "My Apps" Section Header - Extra bold
+                // "My Apps" Section Header (.section-header)
                 SectionHeader(
                     title = "My Apps",
                     actionText = "Manage >",
                     onActionClick = onManageClick
                 )
 
-                // 3 square apps per row grid with 3D tactile press cards
+                // .apps-grid: 3 square apps per row with gap 12px, padding 8px 20px
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -130,14 +135,12 @@ fun FitHubHomeScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // "Today" Section Card - Dynamic to active apps, read-only
+                // Today Section (.today-container + .today-card)
                 TodayCard(
                     metrics = todayMetrics
                 )
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
