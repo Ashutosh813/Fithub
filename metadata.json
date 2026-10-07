@@ -1,0 +1,6 @@
+{
+  "name": "FitHub AI",
+  "description": "Your fitness, all in one place - tracking calories, habits, sleep, water, and activity.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
