@@ -12,14 +12,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.AccentPurple
 import com.example.ui.theme.InterFontFamily
 import com.example.ui.theme.TextMain
 
+/**
+ * SectionHeader matching attached reference design:
+ * "My Apps" on left in bold black, "Manage >" on right in gentle blue/purple (Color(0xFF4F46E5))
+ */
 @Composable
 fun SectionHeader(
     title: String,
@@ -30,7 +34,7 @@ fun SectionHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 6.dp)
+            .padding(horizontal = 22.dp, vertical = 6.dp)
             .testTag("section_header_$title"),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -38,7 +42,7 @@ fun SectionHeader(
         Text(
             text = title,
             fontFamily = InterFontFamily,
-            fontSize = 22.sp,
+            fontSize = 24.sp,
             fontWeight = FontWeight.Black,
             letterSpacing = (-0.5).sp,
             color = TextMain
@@ -47,8 +51,8 @@ fun SectionHeader(
             text = actionText,
             fontFamily = InterFontFamily,
             fontSize = 15.sp,
-            fontWeight = FontWeight.Black,
-            color = AccentPurple,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF4F46E5), // Indigo blue matching screenshot
             modifier = Modifier
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },

@@ -1,7 +1,6 @@
 package com.example.ui.calai
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -20,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,16 +31,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Egg
 import androidx.compose.material.icons.rounded.LocalFireDepartment
-import androidx.compose.material.icons.rounded.Spa
-import androidx.compose.material.icons.rounded.WaterDrop
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -100,6 +97,9 @@ fun CalAiHomeScreen(
 
     // Page 0: Calories + Protein/Carbs/Fats, Page 1: Fiber/Sugar/Sodium + Health score
     val pagerState = rememberPagerState(pageCount = { 2 })
+
+    // Food item pending deletion confirmation
+    var foodItemToDelete by remember { mutableStateOf<FoodItem?>(null) }
 
     // Resolve stats: if viewing Today, use live sums; otherwise use selected past day's dummy stats
     val displayCalories = if (currentDayData.isToday) totalCalories else currentDayData.calories
@@ -183,16 +183,18 @@ fun CalAiHomeScreen(
                                         letterSpacing = (-1).sp,
                                         color = TextMain
                                     )
+                                    // Full black text for "Calories left"
                                     Text(
                                         text = buildAnnotatedString {
                                             append("Calories ")
-                                            withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = TextMain)) {
+                                            withStyle(SpanStyle(fontWeight = FontWeight.Black)) {
                                                 append("left")
                                             }
                                         },
                                         fontFamily = InterFontFamily,
-                                        fontSize = 13.5.sp,
-                                        color = TextMuted
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF111115)
                                     )
                                 } else {
                                     Row(verticalAlignment = Alignment.Bottom) {
@@ -213,16 +215,18 @@ fun CalAiHomeScreen(
                                             modifier = Modifier.padding(bottom = 5.dp, start = 4.dp)
                                         )
                                     }
+                                    // Full black text for "Calories eaten"
                                     Text(
                                         text = buildAnnotatedString {
                                             append("Calories ")
-                                            withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = TextMain)) {
+                                            withStyle(SpanStyle(fontWeight = FontWeight.Black)) {
                                                 append("eaten")
                                             }
                                         },
                                         fontFamily = InterFontFamily,
-                                        fontSize = 13.5.sp,
-                                        color = TextMuted
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF111115)
                                     )
                                 }
                             }
@@ -265,7 +269,7 @@ fun CalAiHomeScreen(
                         }
                     }
 
-                    // 3 Macro Cards Row (Protein, Carbs, Fats) - Refined font & layout
+                    // 3 Macro Cards Row (Protein, Carbs, Fats) - Full Black "eaten" Labels
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -342,7 +346,6 @@ fun CalAiHomeScreen(
                             onCardClick = { showLeftMode = !showLeftMode },
                             modifier = Modifier.weight(1f)
                         )
-                        // Sodium card: PERFECT non-wrapping layout!
                         RefinedMacroCard(
                             title = "Sodium",
                             consumed = currentDayData.sodium,
@@ -482,7 +485,7 @@ fun CalAiHomeScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Meals List by Category - No nested cards, clean and modern!
+        // Meals List by Category
         MealType.entries.forEach { mealType ->
             val itemsForMeal = displayMeals.filter { it.mealType == mealType }
             TodaysMealCard(
@@ -490,16 +493,68 @@ fun CalAiHomeScreen(
                 items = itemsForMeal,
                 isEditable = currentDayData.isToday,
                 onAddClick = { onAddFoodClick(mealType) },
-                onDeleteClick = onDeleteFood
+                onDeleteClick = { item -> foodItemToDelete = item }
             )
             Spacer(modifier = Modifier.height(12.dp))
         }
 
         Spacer(modifier = Modifier.height(36.dp))
     }
+
+    // Confirmation Dialog before deleting any item
+    if (foodItemToDelete != null) {
+        val item = foodItemToDelete!!
+        AlertDialog(
+            onDismissRequest = { foodItemToDelete = null },
+            title = {
+                Text(
+                    text = "Delete Food Item?",
+                    fontFamily = InterFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = TextMain
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to remove \"${item.name}\" (${item.calories} kcal) from your log?",
+                    fontFamily = InterFontFamily,
+                    fontSize = 14.sp,
+                    color = Color(0xFF4B5563)
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteFood(item.id)
+                        foodItemToDelete = null
+                    }
+                ) {
+                    Text(
+                        "Delete",
+                        fontFamily = InterFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFEF4444)
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { foodItemToDelete = null }) {
+                    Text(
+                        "Cancel",
+                        fontFamily = InterFontFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF6B7280)
+                    )
+                }
+            },
+            shape = RoundedCornerShape(20.dp),
+            containerColor = Color.White
+        )
+    }
 }
 
-// Refined Macro Card with atomic single-line text (fixes Sodium awkward wrap permanently)
+// Refined Macro Card with full black "eaten/left" labels
 @Composable
 fun RefinedMacroCard(
     title: String,
@@ -542,7 +597,7 @@ fun RefinedMacroCard(
             horizontalAlignment = Alignment.Start,
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Value display - Atomic single text element, NEVER breaks "/" to a separate line!
+            // Value display
             if (showLeftMode) {
                 Text(
                     text = "$remaining$unit",
@@ -554,12 +609,13 @@ fun RefinedMacroCard(
                     softWrap = false,
                     overflow = TextOverflow.Ellipsis
                 )
+                // Full black color for "$title left"
                 Text(
                     text = "$title left",
                     fontFamily = InterFontFamily,
                     fontSize = 11.5.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextMuted,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF111115),
                     lineHeight = 13.sp
                 )
             } else {
@@ -590,29 +646,30 @@ fun RefinedMacroCard(
                     softWrap = false,
                     overflow = TextOverflow.Ellipsis
                 )
+                // Full black color for "$title eaten" (as requested by user!)
                 Text(
                     text = "$title eaten",
                     fontFamily = InterFontFamily,
                     fontSize = 11.5.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextMuted,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF111115),
                     lineHeight = 13.sp
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Mini circular progress ring with accent dot
+            // Mini Circular Macro Ring
             Box(
                 modifier = Modifier
-                    .size(52.dp)
-                    .align(Alignment.CenterHorizontally),
+                    .size(24.dp)
+                    .align(Alignment.End),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
                     progress = { 1f },
                     modifier = Modifier.fillMaxSize(),
-                    color = Color(0xFFF2F3F7),
+                    color = trackColor,
                     strokeWidth = 5.5.dp,
                     trackColor = Color.Transparent
                 )
@@ -635,14 +692,14 @@ fun RefinedMacroCard(
     }
 }
 
-// Today's Meals Card (Refined: NO nested cards inside! Directly laid out)
+// Today's Meals Card: clicking reveals items with light lightning green food titles!
 @Composable
 fun TodaysMealCard(
     mealType: MealType,
     items: List<FoodItem>,
     isEditable: Boolean,
     onAddClick: () -> Unit,
-    onDeleteClick: (String) -> Unit
+    onDeleteClick: (FoodItem) -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val sectionCalories = items.sumOf { it.calories }
@@ -669,7 +726,7 @@ fun TodaysMealCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left: Meal Title & Flame Calories indicator (Clean, NO card inside card!)
+                // Left: Meal Title & Flame Calories indicator
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = mealType.displayName,
@@ -679,7 +736,6 @@ fun TodaysMealCard(
                         color = TextMain
                     )
 
-                    // Clean flame indicator without nested card background
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -735,7 +791,7 @@ fun TodaysMealCard(
                 }
             }
 
-            // Expandable items view (Clean rows with dividers, NO card inside card!)
+            // Expandable items view: Food title in LIGHT LIGHTNING GREEN (Color(0xFF10B981) / Color(0xFF059669))
             AnimatedVisibility(
                 visible = isExpanded && items.isNotEmpty(),
                 enter = expandVertically() + fadeIn(),
@@ -752,7 +808,6 @@ fun TodaysMealCard(
                                 modifier = Modifier.padding(vertical = 8.dp)
                             )
                         }
-                        // Direct clean row, NO nested card
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -761,12 +816,13 @@ fun TodaysMealCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
+                                // Light lightning green food name!
                                 Text(
                                     text = item.name,
                                     fontFamily = InterFontFamily,
-                                    fontSize = 13.5.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = TextMain
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF10B981)
                                 )
                                 Text(
                                     text = "${item.portionDescription} • P: ${item.protein}g C: ${item.carbs}g F: ${item.fat}g",
@@ -786,10 +842,10 @@ fun TodaysMealCard(
                                     fontWeight = FontWeight.Bold,
                                     color = TextMain
                                 )
-                                // Delete button ONLY if isEditable (present day)
+                                // Delete button with confirmation
                                 if (isEditable) {
                                     IconButton(
-                                        onClick = { onDeleteClick(item.id) },
+                                        onClick = { onDeleteClick(item) },
                                         modifier = Modifier.size(26.dp)
                                     ) {
                                         Icon(

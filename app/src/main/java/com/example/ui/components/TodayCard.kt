@@ -48,9 +48,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.TodayMetric
 import com.example.model.TodayMetricType
-import com.example.ui.theme.BorderColor
 import com.example.ui.theme.InterFontFamily
 
+/**
+ * TodayCard: Exact 1-to-1 recreation of the attached reference design:
+ * - Large white rounded container (corners ~34dp)
+ * - "Today" title in bold black
+ * - 2-column metrics:
+ *   - Circular light gray badge with dark icon
+ *   - Stacked typography: Title (e.g. "Calories", "Water"), primary/secondary (e.g. "1,320 / 2,500", "4 / 8 glasses"), unit (e.g. "kcal")
+ */
 @Composable
 fun TodayCard(
     metrics: List<TodayMetric>,
@@ -59,14 +66,13 @@ fun TodayCard(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // 3D tactile press animation
     val animatedScale by animateFloatAsState(
         targetValue = if (isPressed) 0.985f else 1f,
         animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
         label = "today_scale"
     )
     val animatedElevation by animateFloatAsState(
-        targetValue = if (isPressed) 2f else 10f,
+        targetValue = if (isPressed) 2f else 8f,
         animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
         label = "today_elevation"
     )
@@ -85,19 +91,19 @@ fun TodayCard(
             .shadow(
                 elevation = animatedElevation.dp,
                 shape = RoundedCornerShape(32.dp),
-                ambientColor = Color(0x10000000),
-                spotColor = Color(0x18000000)
+                ambientColor = Color(0x0A000000),
+                spotColor = Color(0x14000000)
             )
             .clip(RoundedCornerShape(32.dp))
             .background(Color.White)
-            .border(0.5.dp, BorderColor, RoundedCornerShape(32.dp))
-            .padding(horizontal = 24.dp, vertical = 24.dp)
+            .border(0.5.dp, Color(0x18000000), RoundedCornerShape(32.dp))
+            .padding(horizontal = 24.dp, vertical = 26.dp)
             .testTag("today_card")
     ) {
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            // "Today" Section Title (Pure and clean, exactly matching Image 1)
+            // "Today" Section Title (Pure clean black, identical to attached design)
             Text(
                 text = "Today",
                 fontFamily = InterFontFamily,
@@ -109,11 +115,11 @@ fun TodayCard(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Dynamic grid based on apps currently in My Apps (matching Image 1)
+            // Dynamic 2-column grid based on apps currently in My Apps
             val chunkedMetrics = metrics.chunked(2)
             chunkedMetrics.forEachIndexed { rowIndex, rowItems ->
                 if (rowIndex > 0) {
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(22.dp))
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -155,10 +161,10 @@ fun TodayItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Soft Light Gray Circle Container with Dark Icon (Identical to Image 1)
+        // Soft Light Gray Circle Container with Dark Icon (Identical to reference screenshot)
         Box(
             modifier = Modifier
-                .size(46.dp)
+                .size(48.dp)
                 .clip(CircleShape)
                 .background(Color(0xFFF3F4F6)),
             contentAlignment = Alignment.Center
@@ -171,21 +177,21 @@ fun TodayItem(
             )
         }
 
-        // Clean stacked Typography matching Image 1
+        // Clean stacked Typography matching attached design
         Column(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
                 text = metric.title,
                 fontFamily = InterFontFamily,
-                fontSize = 14.5.sp,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF111115),
-                lineHeight = 17.sp
+                lineHeight = 18.sp
             )
 
             if (metric.type == TodayMetricType.CALORIES) {
-                // Image 1 format: Line 2: "1,320 / 2,500", Line 3: "kcal"
+                // Line 2: "1,320 / 2,500", Line 3: "kcal"
                 Text(
                     text = buildAnnotatedString {
                         withStyle(
@@ -193,7 +199,7 @@ fun TodayItem(
                                 fontFamily = InterFontFamily,
                                 fontWeight = FontWeight.Black,
                                 color = Color(0xFF111115),
-                                fontSize = 13.5.sp
+                                fontSize = 14.sp
                             )
                         ) {
                             append(metric.primaryValue)
@@ -201,21 +207,21 @@ fun TodayItem(
                         withStyle(
                             SpanStyle(
                                 fontFamily = InterFontFamily,
-                                fontWeight = FontWeight.Medium,
+                                fontWeight = FontWeight.Normal,
                                 color = Color(0xFF8E8E93),
-                                fontSize = 13.sp
+                                fontSize = 13.5.sp
                             )
                         ) {
                             append(" / 2,500")
                         }
                     },
-                    lineHeight = 16.sp
+                    lineHeight = 17.sp
                 )
                 Text(
                     text = "kcal",
                     fontFamily = InterFontFamily,
                     fontSize = 12.5.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.Normal,
                     color = Color(0xFF8E8E93),
                     lineHeight = 15.sp
                 )
@@ -227,7 +233,7 @@ fun TodayItem(
                                 fontFamily = InterFontFamily,
                                 fontWeight = FontWeight.Black,
                                 color = Color(0xFF111115),
-                                fontSize = 13.5.sp
+                                fontSize = 14.sp
                             )
                         ) {
                             append(metric.primaryValue)
@@ -236,15 +242,15 @@ fun TodayItem(
                         withStyle(
                             SpanStyle(
                                 fontFamily = InterFontFamily,
-                                fontWeight = FontWeight.Medium,
+                                fontWeight = FontWeight.Normal,
                                 color = Color(0xFF8E8E93),
-                                fontSize = 13.sp
+                                fontSize = 13.5.sp
                             )
                         ) {
                             append(metric.secondaryValue.removePrefix("/ ").let { if (!it.startsWith("/")) "/ $it" else it })
                         }
                     },
-                    lineHeight = 16.sp
+                    lineHeight = 17.sp
                 )
             }
         }
