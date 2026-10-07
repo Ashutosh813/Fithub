@@ -78,6 +78,7 @@ fun FitHubApp(
                 }
                 NavTab.PROGRESS -> {
                     ProgressAnalyticsScreen(
+                        trackers = uiState.trackers,
                         selectedTab = uiState.selectedTab,
                         onTabSelected = { viewModel.selectTab(it) },
                         onBack = { viewModel.selectTab(NavTab.HOME) }

@@ -1,5 +1,9 @@
 package com.example.ui.calai
 
+import android.graphics.Bitmap
+import java.util.Locale
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -11,6 +15,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,6 +38,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.FlashOn
@@ -43,6 +49,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -55,6 +63,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -68,6 +78,7 @@ import com.example.ui.theme.AccentGreen
 import com.example.ui.theme.AccentOrange
 import com.example.ui.theme.AccentPurple
 import com.example.ui.theme.AccentRed
+import com.example.ui.theme.BorderColor
 import com.example.ui.theme.CardBackground
 import com.example.ui.theme.InterFontFamily
 import com.example.ui.theme.TextMain
@@ -85,6 +96,32 @@ fun CalAiCameraScreen(
 ) {
     var selectedPreset by remember { mutableStateOf<SampleFoodPreset?>(sampleFoodDatabase.first()) }
     var flashActive by remember { mutableStateOf(false) }
+    var capturedPhoto by remember { mutableStateOf<Bitmap?>(null) }
+
+    // Real Camera Launchers
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        if (bitmap != null) {
+            capturedPhoto = bitmap
+            onTriggerScan(selectedPreset)
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            takePictureLauncher.launch(null)
+        } else {
+            // Fallback to sample preset if camera permission denied
+            onTriggerScan(selectedPreset)
+        }
+    }
+
+    fun launchRealCamera() {
+        cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+    }
 
     // Animated laser scanner beam
     val infiniteTransition = rememberInfiniteTransition(label = "laser_transition")
@@ -104,7 +141,7 @@ fun CalAiCameraScreen(
             .background(Color(0xFF0F0F14))
             .testTag("cal_ai_camera_screen")
     ) {
-        // Futuristic Camera Viewfinder Canvas
+        // Camera Viewfinder Canvas
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -125,77 +162,119 @@ fun CalAiCameraScreen(
                     .border(1.5.dp, Color(0x33FFFFFF), RoundedCornerShape(32.dp)),
                 contentAlignment = Alignment.Center
             ) {
+                // If real photo was captured, show it directly in the viewfinder!
+                if (capturedPhoto != null) {
+                    Image(
+                        bitmap = capturedPhoto!!.asImageBitmap(),
+                        contentDescription = "Captured Meal",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(32.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
                 // Moving laser scanner line
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.9f)
-                        .height(3.dp)
-                        .align(Alignment.TopCenter)
-                        .offset(y = (380 * laserOffsetFraction).dp)
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(Color.Transparent, Color(0xFF5856D6), Color(0xFF00C6FF), Color(0xFF5856D6), Color.Transparent)
+                if (isScanning) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.9f)
+                            .height(3.dp)
+                            .align(Alignment.TopCenter)
+                            .offset(y = (380 * laserOffsetFraction).dp)
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color.Transparent, Color(0xFF5856D6), Color(0xFF00C6FF), Color(0xFF5856D6), Color.Transparent)
+                                )
                             )
-                        )
-                )
+                    )
+                }
 
                 // Corner Reticle Brackets
                 CornerReticles()
 
                 // Center food focus helper
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(68.dp)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.08f)),
-                        contentAlignment = Alignment.Center
+                if (capturedPhoto == null && !isScanning) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AutoAwesome,
-                            contentDescription = null,
-                            tint = Color(0xFFA5A3FF),
-                            modifier = Modifier.size(32.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(68.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.08f))
+                                .clickable { launchRealCamera() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.CameraAlt,
+                                contentDescription = "Open Real Camera",
+                                tint = Color(0xFFA5A3FF),
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Text(
+                            text = "Tap to open camera & scan",
+                            fontFamily = InterFontFamily,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "Hold still over your plate for auto macro detection",
+                            fontFamily = InterFontFamily,
+                            fontSize = 11.5.sp,
+                            color = Color(0xFF8E8E93),
+                            modifier = Modifier.padding(top = 2.dp)
                         )
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Text(
-                        text = if (isScanning) "AI Analyzing Nutrition..." else "Point Camera at Food",
-                        fontFamily = InterFontFamily,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Text(
-                        text = selectedPreset?.name ?: "Align meal inside box",
-                        fontFamily = InterFontFamily,
-                        fontSize = 12.sp,
-                        color = Color.White.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-
-                    if (isScanning) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        CircularProgressIndicator(
-                            color = AccentPurple,
-                            strokeWidth = 3.dp,
-                            modifier = Modifier.size(28.dp)
-                        )
+                // Scanning Progress HUD
+                if (isScanning) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color(0xD9000000))
+                            .border(1.dp, Color(0x33A5A3FF), RoundedCornerShape(20.dp))
+                            .padding(horizontal = 24.dp, vertical = 18.dp)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(
+                                color = Color(0xFFA5A3FF),
+                                strokeWidth = 3.dp,
+                                modifier = Modifier.size(36.dp)
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "AI Analyzing Nutrients...",
+                                fontFamily = InterFontFamily,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Estimating calories, protein, carbs & fat",
+                                fontFamily = InterFontFamily,
+                                fontSize = 11.sp,
+                                color = Color(0xFFA0A0AB)
+                            )
+                        }
                     }
                 }
             }
         }
 
-        // Camera Top Controls (Flash, Switch, Gallery)
+        // Top Controls: Flash, Model Badge, Flip
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 24.dp)
-                .align(Alignment.TopCenter),
+                .padding(horizontal = 24.dp, vertical = 20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -221,7 +300,7 @@ fun CalAiCameraScreen(
                     .padding(horizontal = 14.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = "Cal AI Vision 2.0",
+                    text = "Cal AI Vision Camera",
                     fontFamily = InterFontFamily,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -230,7 +309,7 @@ fun CalAiCameraScreen(
             }
 
             IconButton(
-                onClick = { /* Switch camera */ },
+                onClick = { launchRealCamera() },
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
@@ -238,7 +317,7 @@ fun CalAiCameraScreen(
             ) {
                 Icon(
                     imageVector = Icons.Rounded.FlipCameraIos,
-                    contentDescription = "Flip Camera",
+                    contentDescription = "Switch Camera",
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
                 )
@@ -253,49 +332,51 @@ fun CalAiCameraScreen(
                 .padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Sample Food Presets (Quick select to simulate real scan test)
+            // Sample Food Presets (Quick selection)
             Text(
-                text = "Tap a dish to scan or take photo:",
+                text = "Tap to open camera or select food dish:",
                 fontFamily = InterFontFamily,
                 fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.White.copy(alpha = 0.6f),
+                color = Color(0xFF8E8E93),
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp)
             ) {
                 items(sampleFoodDatabase) { preset ->
-                    val isSelected = preset == selectedPreset
+                    val isSelected = selectedPreset?.name == preset.name
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(16.dp))
-                            .background(if (isSelected) AccentPurple else Color(0x33FFFFFF))
-                            .border(1.dp, if (isSelected) Color.White else Color.Transparent, RoundedCornerShape(16.dp))
+                            .background(if (isSelected) AccentPurple else Color(0x22FFFFFF))
+                            .border(
+                                width = 1.dp,
+                                color = if (isSelected) Color.White.copy(alpha = 0.5f) else Color(0x22FFFFFF),
+                                shape = RoundedCornerShape(16.dp)
+                            )
                             .clickable {
                                 selectedPreset = preset
                                 onTriggerScan(preset)
                             }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Text(
                             text = preset.name,
                             fontFamily = InterFontFamily,
-                            fontSize = 11.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 11.5.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             color = Color.White
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Main Shutter Button
+            // Real Camera Shutter Action Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -303,23 +384,23 @@ fun CalAiCameraScreen(
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Gallery button
+                // Open Camera Button
                 IconButton(
-                    onClick = { onTriggerScan(selectedPreset) },
+                    onClick = { launchRealCamera() },
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
                         .background(Color(0x22FFFFFF))
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.PhotoLibrary,
-                        contentDescription = "Gallery",
+                        imageVector = Icons.Rounded.CameraAlt,
+                        contentDescription = "Open Real Camera",
                         tint = Color.White,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 }
 
-                // Shutter Circle Button
+                // Shutter Circle Button (Opens camera & triggers AI scan)
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -329,20 +410,34 @@ fun CalAiCameraScreen(
                         .clip(CircleShape)
                         .background(AccentPurple)
                         .clickable(enabled = !isScanning) {
-                            onTriggerScan(selectedPreset)
+                            launchRealCamera()
                         }
                         .testTag("camera_shutter_button"),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.AutoAwesome,
-                        contentDescription = "Capture & Analyze",
+                        contentDescription = "Capture Photo",
                         tint = Color.White,
                         modifier = Modifier.size(28.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.size(48.dp))
+                // Preset scan fallback button
+                IconButton(
+                    onClick = { onTriggerScan(selectedPreset) },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(Color(0x22FFFFFF))
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.PhotoLibrary,
+                        contentDescription = "Analyze Preset",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
         }
 
@@ -358,48 +453,13 @@ fun CalAiCameraScreen(
                     result = result,
                     onPortionChange = onPortionChange,
                     onLogClick = onLogScan,
-                    onDismiss = onDismissScan
+                    onRetakeClick = {
+                        onDismissScan()
+                        launchRealCamera()
+                    }
                 )
             }
         }
-    }
-}
-
-@Composable
-fun CornerReticles() {
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Top Left
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(16.dp)
-                .size(24.dp)
-                .border(width = 3.dp, color = Color(0xFFA5A3FF), shape = RoundedCornerShape(topStart = 8.dp))
-        )
-        // Top Right
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(16.dp)
-                .size(24.dp)
-                .border(width = 3.dp, color = Color(0xFFA5A3FF), shape = RoundedCornerShape(topEnd = 8.dp))
-        )
-        // Bottom Left
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(16.dp)
-                .size(24.dp)
-                .border(width = 3.dp, color = Color(0xFFA5A3FF), shape = RoundedCornerShape(bottomStart = 8.dp))
-        )
-        // Bottom Right
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .size(24.dp)
-                .border(width = 3.dp, color = Color(0xFFA5A3FF), shape = RoundedCornerShape(bottomEnd = 8.dp))
-        )
     }
 }
 
@@ -408,68 +468,54 @@ fun ScanResultCard(
     result: AiScanResult,
     onPortionChange: (Float) -> Unit,
     onLogClick: () -> Unit,
-    onDismiss: () -> Unit
+    onRetakeClick: () -> Unit
 ) {
-    val currentCalories = (result.calories * result.portionMultiplier).toInt()
-    val currentProtein = (result.protein * result.portionMultiplier).toInt()
-    val currentCarbs = (result.carbs * result.portionMultiplier).toInt()
-    val currentFat = (result.fat * result.portionMultiplier).toInt()
+    val multiplier = result.portionMultiplier
+    val displayCalories = (result.calories * multiplier).toInt()
+    val displayProtein = (result.protein * multiplier).toInt()
+    val displayCarbs = (result.carbs * multiplier).toInt()
+    val displayFat = (result.fat * multiplier).toInt()
+    val displayGrams = (result.servingSizeGrams * multiplier).toInt()
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(
-                elevation = 16.dp,
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
-            )
-            .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
+            .shadow(16.dp, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+            .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
             .background(Color.White)
             .padding(24.dp)
-            .testTag("ai_scan_result_card")
+            .testTag("scan_result_card")
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
+        Column {
+            // Drag / Close bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(AccentGreen.copy(alpha = 0.12f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(AccentGreen.copy(alpha = 0.15f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "✓ ${result.confidence}% Match",
-                            fontFamily = InterFontFamily,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = AccentGreen
-                        )
-                    }
                     Text(
-                        text = "Cal AI Vision",
+                        text = "Confidence: ${result.confidence}%",
                         fontFamily = InterFontFamily,
-                        fontSize = 12.sp,
-                        color = TextMuted
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = AccentGreen
                     )
                 }
 
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.size(32.dp)
-                ) {
+                IconButton(onClick = onRetakeClick, modifier = Modifier.size(28.dp)) {
                     Icon(Icons.Rounded.Close, contentDescription = "Close", tint = TextMuted)
                 }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Identified Dish Name & Big Calories
+            // Dish Name & Calorie Hero
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -484,103 +530,109 @@ fun ScanResultCard(
                         color = TextMain
                     )
                     Text(
-                        text = "${(result.servingSizeGrams * result.portionMultiplier).toInt()}g estimated portion",
+                        text = "$displayGrams g serving • ${result.suggestedMealType.displayName}",
                         fontFamily = InterFontFamily,
                         fontSize = 12.sp,
                         color = TextMuted
                     )
                 }
 
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(AccentPurple.copy(alpha = 0.12f))
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
-                ) {
+                Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "$currentCalories kcal",
+                        text = "$displayCalories",
                         fontFamily = InterFontFamily,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AccentPurple
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Black,
+                        color = TextMain
+                    )
+                    Text(
+                        text = "kcal",
+                        fontFamily = InterFontFamily,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextMuted
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-            // Macro Breakdown Pills
+            // Macro Breakdown Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                ScanMacroBox("Protein", "${currentProtein}g", AccentBlue, Modifier.weight(1f))
-                ScanMacroBox("Carbs", "${currentCarbs}g", AccentOrange, Modifier.weight(1f))
-                ScanMacroBox("Fats", "${currentFat}g", AccentRed, Modifier.weight(1f))
+                ScanMacroItem("Protein", "${displayProtein}g", AccentRed, Modifier.weight(1f))
+                ScanMacroItem("Carbs", "${displayCarbs}g", AccentPurple, Modifier.weight(1f))
+                ScanMacroItem("Fat", "${displayFat}g", AccentGreen, Modifier.weight(1f))
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-            // Portion Multiplier Options (0.5x, 1x, 1.5x, 2x)
-            Text(
-                text = "Adjust Portion Size:",
-                fontFamily = InterFontFamily,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = TextMain
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
+            // Portion Multiplier Slider
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                listOf(0.5f, 1.0f, 1.5f, 2.0f).forEach { mult ->
-                    val isSelected = result.portionMultiplier == mult
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) AccentPurple else Color(0xFFF2F2F7))
-                            .clickable { onPortionChange(mult) }
-                            .padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "${mult}x",
-                            fontFamily = InterFontFamily,
-                            fontSize = 12.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) Color.White else TextMain
-                        )
-                    }
-                }
+                Text(
+                    text = "Portion Size",
+                    fontFamily = InterFontFamily,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextMain
+                )
+                Text(
+                    text = "${String.format(Locale.US, "%.1f", multiplier)}x ($displayGrams g)",
+                    fontFamily = InterFontFamily,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = AccentPurple
+                )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Slider(
+                value = multiplier,
+                onValueChange = onPortionChange,
+                valueRange = 0.5f..2.5f,
+                steps = 7,
+                colors = SliderDefaults.colors(
+                    thumbColor = AccentPurple,
+                    activeTrackColor = AccentPurple,
+                    inactiveTrackColor = Color(0xFFF2F2F7)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
 
-            // Log Meal Button
-            Button(
-                onClick = onLogClick,
-                colors = ButtonDefaults.buttonColors(containerColor = AccentPurple),
-                shape = RoundedCornerShape(18.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .testTag("log_scanned_meal_button")
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Action Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Button(
+                    onClick = onRetakeClick,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF2F2F7)),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
                 ) {
-                    Icon(Icons.Rounded.Check, contentDescription = null, tint = Color.White)
-                    Text(
-                        text = "Log Meal to Today",
-                        fontFamily = InterFontFamily,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    Text("Retake", fontFamily = InterFontFamily, color = TextMain, fontWeight = FontWeight.SemiBold)
+                }
+
+                Button(
+                    onClick = onLogClick,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF111115)),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .weight(2f)
+                        .height(50.dp)
+                ) {
+                    Icon(Icons.Rounded.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Log to Today", fontFamily = InterFontFamily, color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -588,18 +640,51 @@ fun ScanResultCard(
 }
 
 @Composable
-fun ScanMacroBox(name: String, amount: String, color: Color, modifier: Modifier = Modifier) {
-    Box(
+fun ScanMacroItem(name: String, value: String, color: Color, modifier: Modifier = Modifier) {
+    Column(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
             .background(Color(0xFFF9F9FB))
-            .border(0.5.dp, Color(0x14000000), RoundedCornerShape(14.dp))
+            .border(0.5.dp, BorderColor, RoundedCornerShape(14.dp))
             .padding(10.dp),
-        contentAlignment = Alignment.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = name, fontFamily = InterFontFamily, fontSize = 11.sp, color = TextMuted)
-            Text(text = amount, fontFamily = InterFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = color)
-        }
+        Text(text = name, fontFamily = InterFontFamily, fontSize = 11.sp, color = TextMuted)
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(text = value, fontFamily = InterFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = color)
+    }
+}
+
+@Composable
+fun CornerReticles() {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(20.dp)
+                .size(24.dp)
+                .border(width = 2.dp, color = Color(0xFFA5A3FF), shape = RoundedCornerShape(topStart = 8.dp))
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(20.dp)
+                .size(24.dp)
+                .border(width = 2.dp, color = Color(0xFFA5A3FF), shape = RoundedCornerShape(topEnd = 8.dp))
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(20.dp)
+                .size(24.dp)
+                .border(width = 2.dp, color = Color(0xFFA5A3FF), shape = RoundedCornerShape(bottomStart = 8.dp))
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(20.dp)
+                .size(24.dp)
+                .border(width = 2.dp, color = Color(0xFFA5A3FF), shape = RoundedCornerShape(bottomEnd = 8.dp))
+        )
     }
 }

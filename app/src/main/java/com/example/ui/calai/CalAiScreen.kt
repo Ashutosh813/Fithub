@@ -2,6 +2,9 @@ package com.example.ui.calai
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -21,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -55,6 +59,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.AiScanResult
@@ -69,6 +74,7 @@ import com.example.ui.theme.BorderColor
 import com.example.ui.theme.InterFontFamily
 import com.example.ui.theme.TextMain
 import com.example.ui.theme.TextMuted
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,14 +109,26 @@ fun CalAiScreen(
     onDeleteFood: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    BackHandler { onClose() }
-
-    var dragOffsetY by remember { mutableFloatStateOf(0f) }
-    val draggableState = rememberDraggableState { delta ->
-        dragOffsetY += delta
-        if (dragOffsetY > 120f) {
-            onClose()
+    // Hierarchical back handling: if in Camera or Progress or dialog, back returns to previous page within Cal AI!
+    BackHandler {
+        when {
+            isAddFoodSheetOpen -> onCloseAddFood()
+            scanResult != null -> onDismissScan()
+            currentTab != CalAiTab.HOME -> onTabSelected(CalAiTab.HOME)
+            else -> onClose() // Only returns to FitHub Home if already on Home tab!
         }
+    }
+
+    // Physical finger-tracking pull-to-minimize behavior (identical to Manage Sheet / Bottom Sheet!)
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    val animatedOffsetY by animateFloatAsState(
+        targetValue = dragOffsetY,
+        animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow),
+        label = "pull_to_minimize"
+    )
+
+    val draggableState = rememberDraggableState { delta ->
+        dragOffsetY = (dragOffsetY + delta).coerceAtLeast(0f)
     }
 
     // Scroll to current selected day initially
@@ -124,6 +142,7 @@ fun CalAiScreen(
     Scaffold(
         modifier = modifier
             .fillMaxSize()
+            .offset { IntOffset(0, animatedOffsetY.roundToInt()) }
             .testTag("cal_ai_full_screen"),
         containerColor = BackgroundColor,
         topBar = {
@@ -135,10 +154,16 @@ fun CalAiScreen(
                     .draggable(
                         state = draggableState,
                         orientation = Orientation.Vertical,
-                        onDragStopped = { dragOffsetY = 0f }
+                        onDragStopped = { velocity ->
+                            if (dragOffsetY > 200f || velocity > 900f) {
+                                onClose()
+                            } else {
+                                dragOffsetY = 0f
+                            }
+                        }
                     )
             ) {
-                // Top drag handle - dragging down or tapping minimizes
+                // Top drag handle - physical pull-down follows user's hand
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -174,7 +199,7 @@ fun CalAiScreen(
                                     color = TextMain
                                 )
                                 Text(
-                                    text = if (currentSelectedDay.isToday) "Daily nutrition & macro intake" else "Past log overview",
+                                    text = if (currentSelectedDay.isToday) "Daily nutrition & macro intake" else "Past log • Read only",
                                     fontFamily = InterFontFamily,
                                     fontSize = 11.5.sp,
                                     color = TextMuted
@@ -225,12 +250,10 @@ fun CalAiScreen(
                                 val isSelected = index == selectedDayIndex
                                 val isFuture = day.isFuture
 
-                                // Tick mark is ONLY shown if calorie, protein, fat, carbs intake is completely met/reached!
-                                val isIntakeComplete = if (day.isToday) {
-                                    (totalCalories >= calorieGoal && totalProtein >= proteinGoal && totalCarbs >= carbsGoal && totalFat >= fatGoal)
-                                } else {
-                                    day.isGoalsCompleted
-                                }
+                                // Tick mark is shown whenever calorie intake goal is completed (reached)
+                                val dayCalories = if (day.isToday) totalCalories else day.calories
+                                val dayGoal = if (day.isToday) calorieGoal else day.calorieGoal
+                                val isCalorieIntakeComplete = !isFuture && (dayCalories >= dayGoal)
 
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -245,7 +268,7 @@ fun CalAiScreen(
                                                 else -> Color.White
                                             }
                                         )
-                                        // Present day is distinguished with a light outline (NO "Today" text added)
+                                        // Present day is distinguished with light outline (NO "Today" text added)
                                         .border(
                                             width = when {
                                                 isSelected -> 1.5.dp
@@ -254,7 +277,7 @@ fun CalAiScreen(
                                             },
                                             color = when {
                                                 isSelected -> Color(0xFF111115)
-                                                day.isToday -> Color(0xFF111115).copy(alpha = 0.38f) // Light outline for today
+                                                day.isToday -> Color(0xFF111115).copy(alpha = 0.38f)
                                                 isFuture -> Color(0x0C000000)
                                                 else -> Color(0x18000000)
                                             },
@@ -276,7 +299,7 @@ fun CalAiScreen(
                                         }
                                     )
 
-                                    // Date circle with tick mark badge if goal complete
+                                    // Date circle with tick badge if calorie intake completed
                                     Box(
                                         modifier = Modifier.size(36.dp),
                                         contentAlignment = Alignment.Center
@@ -312,19 +335,20 @@ fun CalAiScreen(
                                             )
                                         }
 
-                                        // Tick mark ONLY on days where calorie, protein, fat etc intake is completed!
-                                        if (isIntakeComplete && !isSelected && !isFuture) {
+                                        // Tick mark shown whenever calorie intake goal is completed
+                                        if (isCalorieIntakeComplete && !isFuture) {
                                             Box(
                                                 modifier = Modifier
                                                     .align(Alignment.TopEnd)
                                                     .size(13.dp)
                                                     .clip(CircleShape)
-                                                    .background(Color(0xFF10B981)),
+                                                    .background(Color(0xFF10B981))
+                                                    .border(1.dp, Color.White, CircleShape),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Icon(
                                                     imageVector = Icons.Rounded.Check,
-                                                    contentDescription = "Goals Complete",
+                                                    contentDescription = "Calorie Goal Complete",
                                                     tint = Color.White,
                                                     modifier = Modifier.size(9.dp)
                                                 )
@@ -336,7 +360,7 @@ fun CalAiScreen(
                         }
                     }
                     CalAiTab.PROGRESS -> {
-                        // Header on Progress tab - NO calendar date/day pills row!
+                        // Header on Progress tab - NO calendar strip!
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -354,7 +378,7 @@ fun CalAiScreen(
                                     color = TextMain
                                 )
                                 Text(
-                                    text = "Weekly analytics & macronutrient trends",
+                                    text = "Weekly intake & macronutrient trends",
                                     fontFamily = InterFontFamily,
                                     fontSize = 11.5.sp,
                                     color = TextMuted
@@ -390,7 +414,7 @@ fun CalAiScreen(
                         }
                     }
                     CalAiTab.CAMERA -> {
-                        // Camera tab has its own full screen scanning interface
+                        // Camera tab handles its own full-screen viewfinder
                     }
                 }
             }
@@ -427,8 +451,12 @@ fun CalAiScreen(
                             fatGoal = fatGoal,
                             currentDayData = currentSelectedDay,
                             onOpenScanner = { onTabSelected(CalAiTab.CAMERA) },
-                            onAddFoodClick = onOpenAddFood,
-                            onDeleteFood = onDeleteFood
+                            onAddFoodClick = {
+                                if (currentSelectedDay.isToday) onOpenAddFood(it)
+                            },
+                            onDeleteFood = {
+                                if (currentSelectedDay.isToday) onDeleteFood(it)
+                            }
                         )
                     }
                     CalAiTab.CAMERA -> {

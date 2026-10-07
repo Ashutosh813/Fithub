@@ -37,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -50,10 +49,7 @@ import androidx.compose.ui.unit.sp
 import com.example.model.TodayMetric
 import com.example.model.TodayMetricType
 import com.example.ui.theme.BorderColor
-import com.example.ui.theme.CardBackground
 import com.example.ui.theme.InterFontFamily
-import com.example.ui.theme.TextMain
-import com.example.ui.theme.TextMuted
 
 @Composable
 fun TodayCard(
@@ -65,12 +61,12 @@ fun TodayCard(
 
     // 3D tactile press animation
     val animatedScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1f,
+        targetValue = if (isPressed) 0.985f else 1f,
         animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
         label = "today_scale"
     )
     val animatedElevation by animateFloatAsState(
-        targetValue = if (isPressed) 3f else 12f,
+        targetValue = if (isPressed) 2f else 10f,
         animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
         label = "today_elevation"
     )
@@ -88,63 +84,36 @@ fun TodayCard(
             .scale(animatedScale)
             .shadow(
                 elevation = animatedElevation.dp,
-                shape = RoundedCornerShape(26.dp),
-                ambientColor = Color(0x16000000),
-                spotColor = Color(0x22000000)
+                shape = RoundedCornerShape(32.dp),
+                ambientColor = Color(0x10000000),
+                spotColor = Color(0x18000000)
             )
-            .clip(RoundedCornerShape(26.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color.White,
-                        Color(0xFFFAFAFD)
-                    )
-                )
-            )
-            .border(0.75.dp, Color(0x1A000000), RoundedCornerShape(26.dp))
-            .padding(20.dp)
+            .clip(RoundedCornerShape(32.dp))
+            .background(Color.White)
+            .border(0.5.dp, BorderColor, RoundedCornerShape(32.dp))
+            .padding(horizontal = 24.dp, vertical = 24.dp)
             .testTag("today_card")
     ) {
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            // "Today" Section Title
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Today",
-                    fontFamily = InterFontFamily,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = (-0.4).sp,
-                    color = Color(0xFF0F0F14)
-                )
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(Color(0xFFF2F2F7))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "Overview",
-                        fontFamily = InterFontFamily,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF6B7280)
-                    )
-                }
-            }
+            // "Today" Section Title (Pure and clean, exactly matching Image 1)
+            Text(
+                text = "Today",
+                fontFamily = InterFontFamily,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = (-0.5).sp,
+                color = Color(0xFF111115)
+            )
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Dynamic grid based on apps in My Apps
+            // Dynamic grid based on apps currently in My Apps (matching Image 1)
             val chunkedMetrics = metrics.chunked(2)
             chunkedMetrics.forEachIndexed { rowIndex, rowItems ->
                 if (rowIndex > 0) {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -156,7 +125,6 @@ fun TodayCard(
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    // If odd number of items in the last row, fill remaining space
                     if (rowItems.size == 1) {
                         Spacer(modifier = Modifier.weight(1f))
                     }
@@ -182,90 +150,103 @@ fun TodayItem(
         TodayMetricType.MEDITATION -> Icons.Rounded.SelfImprovement
     }
 
-    val iconColor = when (metric.type) {
-        TodayMetricType.CALORIES -> Color(0xFFFF3B30)
-        TodayMetricType.WATER -> Color(0xFF007AFF)
-        TodayMetricType.HABITS -> Color(0xFF34C759)
-        TodayMetricType.ACTIVITY -> Color(0xFFFF9500)
-        TodayMetricType.SLEEP -> Color(0xFF5856D6)
-        TodayMetricType.WORKOUT -> Color(0xFF8B5CF6)
-        TodayMetricType.FASTING -> Color(0xFFF59E0B)
-        TodayMetricType.MEDITATION -> Color(0xFF10B981)
-    }
-
     Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFFF7F8FA))
-            .border(0.5.dp, Color(0x0F000000), RoundedCornerShape(14.dp))
-            .padding(horizontal = 10.dp, vertical = 10.dp)
-            .testTag("today_item_${metric.id}"),
+        modifier = modifier.testTag("today_item_${metric.id}"),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // 3D Circular Icon Badge
+        // Soft Light Gray Circle Container with Dark Icon (Identical to Image 1)
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .shadow(
-                    elevation = 2.dp,
-                    shape = CircleShape,
-                    ambientColor = Color(0x0E000000),
-                    spotColor = Color(0x14000000)
-                )
+                .size(46.dp)
                 .clip(CircleShape)
-                .background(Color.White)
-                .border(0.5.dp, Color(0x12000000), CircleShape),
+                .background(Color(0xFFF3F4F6)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = iconVector,
                 contentDescription = metric.title,
-                tint = iconColor,
-                modifier = Modifier.size(19.dp)
+                tint = Color(0xFF111115),
+                modifier = Modifier.size(20.dp)
             )
         }
 
-        // Bold readable Texts
+        // Clean stacked Typography matching Image 1
         Column(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
                 text = metric.title,
                 fontFamily = InterFontFamily,
-                fontSize = 12.5.sp,
+                fontSize = 14.5.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.2).sp,
-                color = Color(0xFF1F2937)
+                color = Color(0xFF111115),
+                lineHeight = 17.sp
             )
-            Spacer(modifier = Modifier.height(1.dp))
-            Text(
-                text = buildAnnotatedString {
-                    withStyle(
-                        SpanStyle(
-                            fontFamily = InterFontFamily,
-                            fontWeight = FontWeight.Black,
-                            color = Color(0xFF0F0F14),
-                            fontSize = 12.5.sp
-                        )
-                    ) {
-                        append(metric.primaryValue)
-                    }
-                    append(" ")
-                    withStyle(
-                        SpanStyle(
-                            fontFamily = InterFontFamily,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF6B7280),
-                            fontSize = 11.sp
-                        )
-                    ) {
-                        append(metric.secondaryValue)
-                    }
-                },
-                letterSpacing = (-0.2).sp,
-                maxLines = 1
-            )
+
+            if (metric.type == TodayMetricType.CALORIES) {
+                // Image 1 format: Line 2: "1,320 / 2,500", Line 3: "kcal"
+                Text(
+                    text = buildAnnotatedString {
+                        withStyle(
+                            SpanStyle(
+                                fontFamily = InterFontFamily,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFF111115),
+                                fontSize = 13.5.sp
+                            )
+                        ) {
+                            append(metric.primaryValue)
+                        }
+                        withStyle(
+                            SpanStyle(
+                                fontFamily = InterFontFamily,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF8E8E93),
+                                fontSize = 13.sp
+                            )
+                        ) {
+                            append(" / 2,500")
+                        }
+                    },
+                    lineHeight = 16.sp
+                )
+                Text(
+                    text = "kcal",
+                    fontFamily = InterFontFamily,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8E8E93),
+                    lineHeight = 15.sp
+                )
+            } else {
+                Text(
+                    text = buildAnnotatedString {
+                        withStyle(
+                            SpanStyle(
+                                fontFamily = InterFontFamily,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFF111115),
+                                fontSize = 13.5.sp
+                            )
+                        ) {
+                            append(metric.primaryValue)
+                        }
+                        append(" ")
+                        withStyle(
+                            SpanStyle(
+                                fontFamily = InterFontFamily,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF8E8E93),
+                                fontSize = 13.sp
+                            )
+                        ) {
+                            append(metric.secondaryValue.removePrefix("/ ").let { if (!it.startsWith("/")) "/ $it" else it })
+                        }
+                    },
+                    lineHeight = 16.sp
+                )
+            }
         }
     }
 }

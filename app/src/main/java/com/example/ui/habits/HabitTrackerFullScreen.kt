@@ -52,6 +52,13 @@ import com.example.ui.theme.InterFontFamily
 import com.example.ui.theme.TextMain
 import com.example.ui.theme.TextMuted
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
+
 data class HabitItem(
     val id: String,
     val title: String,
@@ -69,11 +76,14 @@ fun HabitTrackerFullScreen(
     BackHandler { onClose() }
 
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    val animatedOffsetY by animateFloatAsState(
+        targetValue = dragOffsetY,
+        animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow),
+        label = "pull_to_minimize"
+    )
+
     val draggableState = rememberDraggableState { delta ->
-        dragOffsetY += delta
-        if (dragOffsetY > 120f) {
-            onClose()
-        }
+        dragOffsetY = (dragOffsetY + delta).coerceAtLeast(0f)
     }
 
     val habits = remember {
@@ -91,6 +101,7 @@ fun HabitTrackerFullScreen(
     Scaffold(
         modifier = modifier
             .fillMaxSize()
+            .offset { IntOffset(0, animatedOffsetY.roundToInt()) }
             .testTag("habit_tracker_full_screen"),
         containerColor = BackgroundColor,
         topBar = {
@@ -102,7 +113,13 @@ fun HabitTrackerFullScreen(
                     .draggable(
                         state = draggableState,
                         orientation = Orientation.Vertical,
-                        onDragStopped = { dragOffsetY = 0f }
+                        onDragStopped = { velocity ->
+                            if (dragOffsetY > 200f || velocity > 900f) {
+                                onClose()
+                            } else {
+                                dragOffsetY = 0f
+                            }
+                        }
                     )
             ) {
                 // Top handle bar - drag down or tap minimizes

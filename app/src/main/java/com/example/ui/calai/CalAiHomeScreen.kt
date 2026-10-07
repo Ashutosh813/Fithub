@@ -38,6 +38,7 @@ import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.Spa
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -59,6 +60,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -94,10 +96,9 @@ fun CalAiHomeScreen(
     val coroutineScope = rememberCoroutineScope()
 
     // Mode: false = "eaten" (consumed), true = "left" (remaining)
-    // Tapping on ANY card toggles between "eaten" and "left"
     var showLeftMode by remember { mutableStateOf(false) }
 
-    // Page indicator (Page 0: Calories + Protein/Carbs/Fats, Page 1: Fiber/Sugar/Sodium + Health score)
+    // Page 0: Calories + Protein/Carbs/Fats, Page 1: Fiber/Sugar/Sodium + Health score
     val pagerState = rememberPagerState(pageCount = { 2 })
 
     // Resolve stats: if viewing Today, use live sums; otherwise use selected past day's dummy stats
@@ -137,7 +138,7 @@ fun CalAiHomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    // Big Hero Calories Card (Tappable to toggle eaten vs left)
+                    // Big Hero Calories Card
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -165,7 +166,7 @@ fun CalAiHomeScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Today's Goal",
+                                    text = if (currentDayData.isToday) "Today's Goal" else "${currentDayData.dayName}'s Goal",
                                     fontFamily = InterFontFamily,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
@@ -226,7 +227,7 @@ fun CalAiHomeScreen(
                                 }
                             }
 
-                            // Circular Progress Ring with Flame in Center (matching image 3)
+                            // Circular Progress Ring with Flame in Center
                             Box(
                                 modifier = Modifier.size(96.dp),
                                 contentAlignment = Alignment.Center
@@ -264,7 +265,7 @@ fun CalAiHomeScreen(
                         }
                     }
 
-                    // 3 Macro Cards Row (Protein, Carbs, Fats) - Refined font sizing & alignment
+                    // 3 Macro Cards Row (Protein, Carbs, Fats) - Refined font & layout
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -276,7 +277,7 @@ fun CalAiHomeScreen(
                             remaining = remainingProtein,
                             progress = proteinProgress,
                             showLeftMode = showLeftMode,
-                            accentColor = Color(0xFFE25555),
+                            accentColor = Color(0xFFFF453A),
                             trackColor = Color(0xFFFFECEC),
                             onCardClick = { showLeftMode = !showLeftMode },
                             modifier = Modifier.weight(1f)
@@ -341,6 +342,7 @@ fun CalAiHomeScreen(
                             onCardClick = { showLeftMode = !showLeftMode },
                             modifier = Modifier.weight(1f)
                         )
+                        // Sodium card: PERFECT non-wrapping layout!
                         RefinedMacroCard(
                             title = "Sodium",
                             consumed = currentDayData.sodium,
@@ -356,7 +358,7 @@ fun CalAiHomeScreen(
                         )
                     }
 
-                    // Health Score Card (matching screenshot 3)
+                    // Health Score Card (Clean, no card inside card)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -445,36 +447,48 @@ fun CalAiHomeScreen(
 
         Spacer(modifier = Modifier.height(26.dp))
 
-        // "Today's Meals" Section (Replaces "Recently uploaded" - from image 3 & 4)
+        // Meals Section Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Today's Meals",
-                fontFamily = InterFontFamily,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = (-0.4).sp,
-                color = TextMain
-            )
+            Column {
+                Text(
+                    text = if (currentDayData.isToday) "Today's Meals" else "${currentDayData.dayName}'s Meals",
+                    fontFamily = InterFontFamily,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = (-0.4).sp,
+                    color = TextMain
+                )
+                if (!currentDayData.isToday) {
+                    Text(
+                        text = "Past log • Read only",
+                        fontFamily = InterFontFamily,
+                        fontSize = 11.5.sp,
+                        color = TextMuted
+                    )
+                }
+            }
             Text(
                 text = "${displayMeals.size} logged",
                 fontFamily = InterFontFamily,
                 fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
                 color = TextMuted
             )
         }
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Meals List by Category - Styled like uploaded image 3 & 4
+        // Meals List by Category - No nested cards, clean and modern!
         MealType.entries.forEach { mealType ->
             val itemsForMeal = displayMeals.filter { it.mealType == mealType }
             TodaysMealCard(
                 mealType = mealType,
                 items = itemsForMeal,
+                isEditable = currentDayData.isToday,
                 onAddClick = { onAddFoodClick(mealType) },
                 onDeleteClick = onDeleteFood
             )
@@ -485,7 +499,7 @@ fun CalAiHomeScreen(
     }
 }
 
-// Refined Macro Card with perfect font alignment and circle indicator (image 3)
+// Refined Macro Card with atomic single-line text (fixes Sodium awkward wrap permanently)
 @Composable
 fun RefinedMacroCard(
     title: String,
@@ -500,23 +514,27 @@ fun RefinedMacroCard(
     onCardClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isLargeNumber = consumed >= 1000 || target >= 1000 || remaining >= 1000
+    val valFontSize = if (isLargeNumber) 13.5.sp else 16.5.sp
+    val targetFontSize = if (isLargeNumber) 9.5.sp else 11.sp
+
     Box(
         modifier = modifier
             .shadow(
-                elevation = 6.dp,
-                shape = RoundedCornerShape(24.dp),
+                elevation = 5.dp,
+                shape = RoundedCornerShape(22.dp),
                 ambientColor = Color(0x06000000),
                 spotColor = Color(0x0C000000)
             )
-            .clip(RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(22.dp))
             .background(Color.White)
-            .border(0.5.dp, BorderColor, RoundedCornerShape(24.dp))
+            .border(0.5.dp, BorderColor, RoundedCornerShape(22.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(bounded = true, color = Color.Black.copy(alpha = 0.05f)),
                 onClick = onCardClick
             )
-            .padding(vertical = 16.dp, horizontal = 12.dp)
+            .padding(vertical = 15.dp, horizontal = 10.dp)
             .testTag("macro_card_${title.lowercase()}"),
         contentAlignment = Alignment.Center
     ) {
@@ -524,57 +542,70 @@ fun RefinedMacroCard(
             horizontalAlignment = Alignment.Start,
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Value display
+            // Value display - Atomic single text element, NEVER breaks "/" to a separate line!
             if (showLeftMode) {
                 Text(
                     text = "$remaining$unit",
                     fontFamily = InterFontFamily,
-                    fontSize = 17.sp,
+                    fontSize = valFontSize,
                     fontWeight = FontWeight.Black,
-                    color = TextMain
+                    color = TextMain,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = "$title left",
                     fontFamily = InterFontFamily,
-                    fontSize = 12.sp,
+                    fontSize = 11.5.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = TextMuted,
-                    lineHeight = 14.sp
+                    lineHeight = 13.sp
                 )
             } else {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        text = "$consumed",
-                        fontFamily = InterFontFamily,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Black,
-                        color = TextMain
-                    )
-                    Text(
-                        text = "/$target$unit",
-                        fontFamily = InterFontFamily,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = TextMuted,
-                        modifier = Modifier.padding(bottom = 2.dp, start = 2.dp)
-                    )
-                }
+                Text(
+                    text = buildAnnotatedString {
+                        withStyle(
+                            SpanStyle(
+                                fontFamily = InterFontFamily,
+                                fontWeight = FontWeight.Black,
+                                fontSize = valFontSize,
+                                color = TextMain
+                            )
+                        ) {
+                            append("$consumed")
+                        }
+                        withStyle(
+                            SpanStyle(
+                                fontFamily = InterFontFamily,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = targetFontSize,
+                                color = TextMuted
+                            )
+                        ) {
+                            append("/$target$unit")
+                        }
+                    },
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
+                )
                 Text(
                     text = "$title eaten",
                     fontFamily = InterFontFamily,
-                    fontSize = 12.sp,
+                    fontSize = 11.5.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = TextMuted,
-                    lineHeight = 14.sp
+                    lineHeight = 13.sp
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Mini circular progress ring with accent dot
             Box(
                 modifier = Modifier
-                    .size(54.dp)
+                    .size(52.dp)
                     .align(Alignment.CenterHorizontally),
                 contentAlignment = Alignment.Center
             ) {
@@ -582,20 +613,20 @@ fun RefinedMacroCard(
                     progress = { 1f },
                     modifier = Modifier.fillMaxSize(),
                     color = Color(0xFFF2F3F7),
-                    strokeWidth = 6.dp,
+                    strokeWidth = 5.5.dp,
                     trackColor = Color.Transparent
                 )
                 CircularProgressIndicator(
                     progress = { progress },
                     modifier = Modifier.fillMaxSize(),
                     color = accentColor,
-                    strokeWidth = 6.dp,
+                    strokeWidth = 5.5.dp,
                     strokeCap = StrokeCap.Round,
                     trackColor = Color.Transparent
                 )
                 Box(
                     modifier = Modifier
-                        .size(10.dp)
+                        .size(9.dp)
                         .clip(CircleShape)
                         .background(accentColor)
                 )
@@ -604,11 +635,12 @@ fun RefinedMacroCard(
     }
 }
 
-// Today's Meals Card (designed directly from uploaded image 3 & 4)
+// Today's Meals Card (Refined: NO nested cards inside! Directly laid out)
 @Composable
 fun TodaysMealCard(
     mealType: MealType,
     items: List<FoodItem>,
+    isEditable: Boolean,
     onAddClick: () -> Unit,
     onDeleteClick: (String) -> Unit
 ) {
@@ -619,7 +651,7 @@ fun TodaysMealCard(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 5.dp,
+                elevation = 4.dp,
                 shape = RoundedCornerShape(22.dp),
                 ambientColor = Color(0x06000000),
                 spotColor = Color(0x0E000000)
@@ -637,8 +669,8 @@ fun TodaysMealCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left: Meal Title & Flame Calories Pill Badge (matching image 4)
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                // Left: Meal Title & Flame Calories indicator (Clean, NO card inside card!)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = mealType.displayName,
                         fontFamily = InterFontFamily,
@@ -647,87 +679,84 @@ fun TodaysMealCard(
                         color = TextMain
                     )
 
-                    // Peach/Orange Flame Pill Badge
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFFFF7ED))
-                            .border(0.5.dp, Color(0xFFFFEDD5), RoundedCornerShape(12.dp))
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    // Clean flame indicator without nested card background
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        Icon(
+                            imageVector = Icons.Rounded.LocalFireDepartment,
+                            contentDescription = null,
+                            tint = Color(0xFFEA580C),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = if (sectionCalories > 0) "$sectionCalories kcal" else "0 kcal",
+                            fontFamily = InterFontFamily,
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFC2410C)
+                        )
+                    }
+                }
+
+                // Right: Food emoji badges + circular add button (only if isEditable)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Small food badges
+                    Row(horizontalArrangement = Arrangement.spacedBy((-6).dp)) {
+                        MealThumbnailCircle(Color(0xFFFED7AA), "🥗")
+                        MealThumbnailCircle(Color(0xFFBFDBFE), "🍳")
+                        MealThumbnailCircle(Color(0xFFBBF7D0), "🥪")
+                    }
+
+                    // Only show "+" button if on PRESENT DAY (not past dates)
+                    if (isEditable) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFF3F4F6))
+                                .clickable(onClick = onAddClick)
+                                .testTag("add_meal_${mealType.name.lowercase()}"),
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Rounded.LocalFireDepartment,
-                                contentDescription = null,
-                                tint = Color(0xFFEA580C),
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = if (sectionCalories > 0) "$sectionCalories Kcal" else "0 Kcal",
-                                fontFamily = InterFontFamily,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFC2410C)
+                                imageVector = Icons.Rounded.Add,
+                                contentDescription = "Add Food",
+                                tint = Color(0xFF111115),
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
                 }
-
-                // Right: Overlapping circular meal thumbnails + circular `+` button (matching image 4)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy((-10).dp)
-                ) {
-                    // 3 Overlapping food plate mock visual thumbnails
-                    MealThumbnailCircle(Color(0xFFFED7AA), "🥗")
-                    MealThumbnailCircle(Color(0xFFBFDBFE), "🍳")
-                    MealThumbnailCircle(Color(0xFFBBF7D0), "🥪")
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    // Plus button in circular capsule (matching image 4)
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .shadow(2.dp, CircleShape, ambientColor = Color(0x10000000))
-                            .clip(CircleShape)
-                            .background(Color(0xFFF9FAFB))
-                            .border(0.75.dp, Color(0x18000000), CircleShape)
-                            .clickable(onClick = onAddClick)
-                            .testTag("add_meal_${mealType.name.lowercase()}"),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = "Add Food",
-                            tint = Color(0xFF111115),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
             }
 
-            // Expandable items view
+            // Expandable items view (Clean rows with dividers, NO card inside card!)
             AnimatedVisibility(
                 visible = isExpanded && items.isNotEmpty(),
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
                 Column(
-                    modifier = Modifier.padding(top = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.padding(top = 14.dp)
                 ) {
-                    items.forEach { item ->
+                    items.forEachIndexed { index, item ->
+                        if (index > 0) {
+                            HorizontalDivider(
+                                color = Color(0x0C000000),
+                                thickness = 0.5.dp,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
+                        // Direct clean row, NO nested card
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(Color(0xFFF9FAFB))
-                                .border(0.5.dp, BorderColor, RoundedCornerShape(14.dp))
-                                .padding(12.dp),
+                                .padding(vertical = 4.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -757,16 +786,19 @@ fun TodaysMealCard(
                                     fontWeight = FontWeight.Bold,
                                     color = TextMain
                                 )
-                                IconButton(
-                                    onClick = { onDeleteClick(item.id) },
-                                    modifier = Modifier.size(26.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Delete,
-                                        contentDescription = "Delete",
-                                        tint = TextMuted,
-                                        modifier = Modifier.size(15.dp)
-                                    )
+                                // Delete button ONLY if isEditable (present day)
+                                if (isEditable) {
+                                    IconButton(
+                                        onClick = { onDeleteClick(item.id) },
+                                        modifier = Modifier.size(26.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Delete,
+                                            contentDescription = "Delete",
+                                            tint = TextMuted,
+                                            modifier = Modifier.size(15.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -781,13 +813,12 @@ fun TodaysMealCard(
 fun MealThumbnailCircle(backgroundColor: Color, emoji: String) {
     Box(
         modifier = Modifier
-            .size(34.dp)
-            .shadow(2.dp, CircleShape, ambientColor = Color(0x14000000))
+            .size(30.dp)
             .clip(CircleShape)
             .background(backgroundColor)
             .border(1.5.dp, Color.White, CircleShape),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = emoji, fontSize = 15.sp)
+        Text(text = emoji, fontSize = 13.sp)
     }
 }
